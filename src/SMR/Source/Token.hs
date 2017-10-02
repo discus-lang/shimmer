@@ -1,6 +1,5 @@
 
-module SMR.Source.Token
-where
+module SMR.Source.Token where
 import Data.Text (Text)
 
 

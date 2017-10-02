@@ -1,7 +1,11 @@
 
 module SMR.Source.Expected where
 import SMR.Source.Parsec
-
+import SMR.Source.Token
+import SMR.Data.Bag                     (Bag)
+import Data.Text                        (Text)
+import qualified SMR.Data.Bag           as Bag
+import qualified Data.Text              as Text
 
 -------------------------------------------------------------------------------
 data Expected t s p
@@ -10,18 +14,19 @@ data Expected t s p
         | ExBaseNameOf  Space
         | ExBaseNat
         | ExBasePunc    Char
-        | ExBaseMsg     Text
+        | ExBaseMsg     String
         | ExBaseNameAny
 
         -- Contextual expectations, which indicate what we were trying
         -- to parse while we had some other expectation.
         | ExContextDecl
-                Name
+                Text
                 (Bag (Blocker t (Expected t s p)))
 
         | ExContextBind
-                Name
+                Text
                 (Bag (Blocker t (Expected t s p)))
+        deriving Show
 
 
 -- | Pretty print an expected thing.
@@ -38,17 +43,24 @@ pprExpected bb
         ExBaseNameAny   -> "expecting name"
 
         ExContextDecl n es
-         -> "\n" ++ "in declaration " ++ n ++ "\n"
-         ++ (unlines' $ map pprExpected $ bag_toList es)
+         -> "\n" ++ "in declaration " ++ Text.unpack n ++ "\n"
+         ++ (unlines $ map pprBlocker $ Bag.toList es)
 
         ExContextBind n es
-         -> "\n" ++ "in binding "     ++ n % "\n"
-         ++ (unlines' $ map pprExpected $ bag_toList es)
+         -> "\n" ++ "in binding "     ++ Text.unpack n ++ "\n"
+         ++ (unlines $ map pprBlocker $ Bag.toList es)
 
+
+pprBlocker
+        :: (Show t, Show s, Show p)
+        => Blocker t (Expected t s p) -> String
+pprBlocker (Blocker ts e)
+ = case ts of
+        []      -> pprExpected e
+        t : _   -> "at token " ++ show t ++ " " ++ pprExpected e
 
 
 -------------------------------------------------------------------------------
-{-
 -- | Parser error.
 data ParseError t e
         = ParseError [Blocker t e]
@@ -56,22 +68,7 @@ data ParseError t e
 
 pprParseError
         :: (Show t, Show s, Show p)
-        =>
+        => ParseError t (Expected t s p) -> String
 pprParseError (ParseError bs)
- -> unlines $ map ppr bs
+ = unlines $ map pprBlocker bs
 
-
--- | Pretty dictionary for a blocker.
-pretty_Blocker
-        {Pretty t} {Pretty e}
-        : Pretty (Blocker t e)
- =  Pretty $ \(Blocker ts e)
- -> case ts of
-        Nil             -> ppr e
-        Cons t _        -> "at token" %% ppr t %% ppr e
-
-
--- | Pretty dictionary for a located token.
-pretty_LocatedToken: Pretty (Located Token)
- = Pretty show
--}

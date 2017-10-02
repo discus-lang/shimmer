@@ -46,6 +46,7 @@ data ParseResult t e a
         | ParseSuccess
             a                   -- ^ Produced value.
            [t]                  -- ^ Remaining input tokens.
+        deriving Show
 
 
 -- | Describes why the parser could not make further progress.
@@ -54,6 +55,7 @@ data Blocker t e
         { blockerTokens   :: [t] -- ^ Remaining input tokens where we failed.
         , blockerExpected :: e   -- ^ Description of what we were expecting.
         }
+        deriving Show
 
 
 -------------------------------------------------------------------------------
