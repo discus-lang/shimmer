@@ -3,13 +3,15 @@ module Main where
 import SMR.Core.Exp.Base
 import qualified SMR.Source.Parser              as Source
 import qualified SMR.Source.Lexer               as Source
+import qualified SMR.Source.Pretty              as Source
 import qualified SMR.CLI.Config                 as Config
 import qualified System.Environment             as System
 import qualified System.Exit                    as System
 import qualified System.IO                      as System
 import qualified System.Console.Haskeline       as HL
 import qualified Data.Char                      as Char
-
+import qualified Data.Text.Lazy.IO              as TL
+import qualified Data.Text.Lazy.Builder         as BL
 
 main :: IO ()
 main
@@ -41,9 +43,14 @@ runCheck path
                 , Source.configReadPrm  = Just }
 
         case Source.parseDecls config ts of
-         Left err       -> error $ show err
+         Left err
+          -> error $ show err
+
          Right decls
-          -> do putStrLn $ show decls
+          -> TL.putStr
+                $ BL.toLazyText
+                $ mconcat
+                $ map Source.buildDecl decls
 
 
 runRepl :: FilePath -> IO ()

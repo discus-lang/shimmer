@@ -9,7 +9,8 @@ import qualified Data.Vector    as V
 -- | Top-level declaration,
 --   parameterised by the types of symbols and primitives.
 data Decl s p
-        = Decl Name (Exp s p)
+        = DeclMac Name (Exp s p)
+        | DeclSet Name (Exp s p)
         deriving Show
 
 
@@ -28,16 +29,21 @@ data Exp s p
         -- | Application of a function expression to an argument.
         | XApp  (Exp s p) (Exp s p)
 
+        -- | Keyed expressions.
+        | XKey  Key (Exp s p)
+
         -- | Abstraction with a list of parameters and a body expression.
         | XAbs  (Vector Param) (Exp s p)
 
         -- | Substitution train applied to an expression.
         --   The train car at the head of the list is applied first.
-        | XSub  (Vector (Car s p)) (Exp s p)
-
-        -- | Keyed expressions.
-        | XKey  Key (Exp s p)
+        | XSub  (Train s p) (Exp s p)
         deriving Show
+
+
+-- | Substitution train.
+type Train s p
+        = Vector (Car s p)
 
 
 -- | Function parameter.

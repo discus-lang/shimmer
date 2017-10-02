@@ -80,14 +80,14 @@ pDecl c
           xBody   <- pExp c
           _       <- pPunc ';'
           if length psParam == 0
-           then return (Decl name xBody)
-           else return (Decl name $ XAbs (V.fromList psParam) xBody)
+           then return (DeclMac name xBody)
+           else return (DeclMac name $ XAbs (V.fromList psParam) xBody)
 
  , P.enterOn (pNameOfSpace SSet) ExContextDecl $ \name
     -> do _       <- pPunc '='
           xBody   <- pExp c
           _       <- pPunc ';'
-          return (Decl name xBody)
+          return (DeclSet name xBody)
  ]
 
 
