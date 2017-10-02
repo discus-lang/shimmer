@@ -1,7 +1,6 @@
 # Shimmer
 The Lambda Machine
 
-
 ### Declarations
 
 ```
@@ -24,7 +23,7 @@ Ref  ::= '@' Name                 (Macro reference)
       |  '+' Name                 (Set reference)
       |  '%' Name                 (Symbol reference)
       |  '#' Name                 (Primitive reference)
-      
+
 Key  ::= '##tag'                  (Tag an expression)
       |  '##seq'                  (Sequence evaluation)
       |  '##box'                  (Box an expression, delaying evaluation)
@@ -43,7 +42,7 @@ Train ::= Car+                    (Substitution train)
 Car   ::= '['  Bind,* ']'         (Simultaneous substitution)
        |  '[[' Bind,* ']]'        (Recursive substitution)
        |  '{'  Bump,* '}'         (Lifting specifier)
-       
+
 Bind  ::= Name ('^' Nat)? '=' Exp
 Bump  ::= Name ('^' Nat)? ':' Nat
 ```

@@ -1,8 +1,9 @@
 
 -- | The Shimmer Abstract Syntax Tree (AST)
-module SMR.Core.Exp.Base
-where
-import Data.Text        (Text)
+module SMR.Core.Exp.Base where
+import Data.Text                (Text)
+import Data.Vector              (Vector)
+import qualified Data.Vector    as V
 
 
 -- | Top-level declaration,
@@ -16,7 +17,7 @@ data Decl s p
 --   parameterised by the types of symbols and primitives
 data Exp s p
         -- | Return multiple values.
-        = XRet  [Exp s p]
+        = XRet  (Vector (Exp s p))
 
         -- | Reference to an external thing.
         | XRef  (Ref s p)
@@ -28,11 +29,11 @@ data Exp s p
         | XApp  (Exp s p) (Exp s p)
 
         -- | Abstraction with a list of parameters and a body expression.
-        | XAbs  [Param]   (Exp s p)
+        | XAbs  (Vector Param) (Exp s p)
 
         -- | Substitution train applied to an expression.
         --   The train car at the head of the list is applied first.
-        | XSub  [Car s p] (Exp s p)
+        | XSub  (Vector (Car s p)) (Exp s p)
 
         -- | Keyed expressions.
         | XKey  Key (Exp s p)
@@ -89,7 +90,7 @@ data Car s p
 -- | Explicit substitution map,
 --   parameterised by the types used for symbols and primitives.
 data Snv s p
-        = SSnv [SnvBind s p]
+        = SSnv (Vector (SnvBind s p))
         deriving Show
 
 type SnvBind s p
@@ -99,7 +100,7 @@ type SnvBind s p
 -- | Lifting indicator,
 --   mapping name and binding depth to number of levels to lift.
 data Ups
-        = UUps [UpsBump]
+        = UUps (Vector UpsBump)
         deriving Show
 
 type UpsBump

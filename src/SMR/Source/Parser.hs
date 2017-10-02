@@ -12,6 +12,7 @@ import Data.Text                        (Text)
 import qualified SMR.Source.Parsec      as P
 import qualified SMR.Data.Bag           as Bag
 import qualified Data.Text              as Text
+import qualified Data.Vector            as V
 
 
 type Parser s p a
@@ -80,16 +81,14 @@ pDecl c
           _       <- pPunc ';'
           if length psParam == 0
            then return (Decl name xBody)
-           else return (Decl name $ XAbs psParam xBody)
+           else return (Decl name $ XAbs (V.fromList psParam) xBody)
 
  , P.enterOn (pNameOfSpace SSet) ExContextDecl $ \name
-    -> do psParam <- P.some pParam
-          _       <- pPunc '='
+    -> do _       <- pPunc '='
           xBody   <- pExp c
           _       <- pPunc ';'
-          if length psParam == 0
-           then return (Decl name xBody)
-           else return (Decl name $ XAbs psParam xBody) ]
+          return (Decl name xBody)
+ ]
 
 
 -- Exp ------------------------------------------------------------------------
@@ -101,13 +100,13 @@ pExp c
         psParam <- P.some pParam
         _       <- pPunc '.'
         xBody   <- pExp c
-        return  $ XAbs psParam xBody
+        return  $ XAbs (V.fromList psParam) xBody
 
         -- Substitution train.
  , do   csTrain <- pTrain c
         _       <- pPunc '.'
         xBody   <- pExp c
-        return  $  XSub (reverse csTrain) xBody
+        return  $  XSub (V.reverse $ V.fromList csTrain) xBody
 
         -- Application possibly using '$'
  , do   xHead   <- pExpApp c
@@ -164,7 +163,7 @@ pExpAtom c
  , do   _       <- pPunc '<'
         xsArgs  <- P.sepBy (pExp c) (pPunc ',')
         _       <- pPunc '>'
-        return  $ XRet xsArgs
+        return  $ XRet $ V.fromList xsArgs
 
 
         -- Named variable with or without index.
@@ -260,12 +259,12 @@ pCarSimRec c
                 bs      <- P.sepBy (pBind c) (pPunc ',')
                 _       <- pPunc ']'
                 _       <- pPunc ']'
-                return  $ CRec (SSnv (reverse bs)))
+                return  $ CRec (SSnv (V.reverse $ V.fromList bs)))
 
                 -- Simultaneous substitution.
          (do    bs      <- P.sepBy (pBind c) (pPunc ',')
                 _       <- pPunc ']'
-                return  $ CSim (SSnv (reverse bs)))
+                return  $ CSim (SSnv (V.reverse $ V.fromList bs)))
 
 
 -- | Parser for a binding.
@@ -298,7 +297,7 @@ pUps
  = do   _       <- pPunc '{'
         bs      <- P.sepBy pBump (pPunc ',')
         _       <- pPunc '}'
-        return  $ UUps (reverse bs)
+        return  $ UUps (V.reverse $ V.fromList bs)
 
 
 -- | Parser for a bump.

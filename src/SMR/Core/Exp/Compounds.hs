@@ -1,7 +1,8 @@
 
 module SMR.Core.Exp.Compounds where
 import SMR.Core.Exp.Base
-
+import Data.Vector              (Vector)
+import qualified Data.Vector    as V
 
 -- | Make an application of a function to the given list of arguments,
 --   suppressing the application of there are no arguments.
@@ -27,11 +28,11 @@ takeXApps xx
         _ -> Nothing
 
 
--- | Flatten any XRet nodes into a list of expressions.
+-- | Flatten any XRet nodes into a vector of expressions.
 flattenExp :: Exp s p -> [Exp s p]
 flattenExp xArg
  = case xArg of
-        XRet xsArgs     -> flattenExps xsArgs
+        XRet xsArgs     -> flattenExps $ V.toList xsArgs
         _               -> [xArg]
 
 
