@@ -10,7 +10,12 @@ data Mode
 
         -- Parse and check a .smr source file.
         | ModeCheck FilePath
+
+        -- Start the REPL with the given file.
+        | ModeREPL  FilePath
         deriving Show
+
+
 
 
 -- | Command line config.
@@ -32,9 +37,13 @@ parseArgs [] config
  = return config
 
 parseArgs ss config
- | "-check" : filePath : ssRest     <- ss
+ | "-check" : filePath : ssRest <- ss
  = parseArgs ssRest
  $ config { configMode  = ModeCheck filePath }
+
+ | "-repl"  : filePath : ssRest <- ss
+ = parseArgs ssRest
+ $ config { configMode  = ModeREPL  filePath }
 
  | otherwise
  = do   putStr usage
@@ -45,4 +54,5 @@ parseArgs ss config
 usage :: String
 usage
  = unlines
- [ "shimmer -check FILE.ss      Check that a source file is well formed." ]
+ [ "shimmer -check FILE.smr      Check that a source file is well formed."
+ , "shimmer -repl  FILE.smr      Start the REPL with the given file." ]

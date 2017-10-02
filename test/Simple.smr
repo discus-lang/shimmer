@@ -18,3 +18,12 @@
  (@twice (#nat-add #nat'1) #nat'5) #nat'7;
 
 
+@prop-id
+ = %all (\a. %impl a a);
+
+@prop-xm
+ = %all (\p. %or p (%not p));
+
+@prop-mt
+ = %all (\p q. %impl (%and (%impl p q) (%not q)) (%not p));
+
