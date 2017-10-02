@@ -17,6 +17,7 @@ data Space
         = SVar                  -- ^ Local variable.
         | SMac                  -- ^ Macro name.
         | SSym                  -- ^ Symbol name.
+        | SSet                  -- ^ Set name.
         | SPrm                  -- ^ Primitive name.
         | SKey                  -- ^ Keyword (super primitive)
         deriving (Show, Eq)

@@ -64,6 +64,7 @@ pprBlocker (Blocker ts e)
 -- | Parser error.
 data ParseError t e
         = ParseError [Blocker t e]
+        deriving Show
 
 
 pprParseError

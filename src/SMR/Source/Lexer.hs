@@ -126,9 +126,9 @@ skipSpace lStart xx
 takeSpace :: Char -> [Char] -> Maybe (Space, [Char])
 takeSpace c cs
  | Char.isLower c = Just (SVar, c : cs)
- | c == '@'       = Just (SMac, cs)
- | c == '%'       = Just (SSym, cs)
-
+ | c  == '@'    = Just (SMac, cs)
+ | c  == '%'    = Just (SSym, cs)
+ | c  == '+'    = Just (SSet, cs)
  | c  == '#'
  , c' : cs' <- cs
  , c' == '#'

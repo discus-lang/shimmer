@@ -72,14 +72,24 @@ pDecls c
 
 pDecl   :: Config s p -> Parser s p (Decl s p)
 pDecl c
- = P.enterOn (pNameOfSpace SMac) ExContextDecl $ \name
- -> do  psParam <- P.some pParam
-        _       <- pPunc '='
-        xBody   <- pExp c
-        _       <- pPunc ';'
-        if length psParam == 0
-         then return (Decl name xBody)
-         else return (Decl name $ XAbs psParam xBody)
+ = P.alts
+ [ P.enterOn (pNameOfSpace SMac) ExContextDecl $ \name
+    -> do psParam <- P.some pParam
+          _       <- pPunc '='
+          xBody   <- pExp c
+          _       <- pPunc ';'
+          if length psParam == 0
+           then return (Decl name xBody)
+           else return (Decl name $ XAbs psParam xBody)
+
+ , P.enterOn (pNameOfSpace SSet) ExContextDecl $ \name
+    -> do psParam <- P.some pParam
+          _       <- pPunc '='
+          xBody   <- pExp c
+          _       <- pPunc ';'
+          if length psParam == 0
+           then return (Decl name xBody)
+           else return (Decl name $ XAbs psParam xBody) ]
 
 
 -- Exp ------------------------------------------------------------------------
@@ -166,10 +176,13 @@ pExpAtom c
           -> P.alt (do  _       <- pPunc '^'
                         ix      <- pNat
                         return  $ XVar name ix)
-                 (return $ XVar name 0)
+                   (return $ XVar name 0)
 
          -- Named macro.
-         SMac ->  return $ XRef (RMac name)
+         SMac -> return $ XRef (RMac name)
+
+         -- Named set.
+         SSet -> return $ XRef (RSet name)
 
          -- Named symbol
          SSym

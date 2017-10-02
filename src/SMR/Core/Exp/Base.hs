@@ -9,6 +9,7 @@ import Data.Text        (Text)
 --   parameterised by the types of symbols and primitives.
 data Decl s p
         = Decl Name (Exp s p)
+        deriving Show
 
 
 -- | Expression,
@@ -115,6 +116,9 @@ data Ref s p
 
         -- | A macro name.
         | RMac  Name
+
+        -- | A set name.
+        | RSet  Name
         deriving Show
 
 
