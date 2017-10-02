@@ -2,17 +2,14 @@
 The Lambda Machine
 
 
-Declarations
-~~~~~~~~~~~~
+### Declarations
 
 ```
 Decl ::=  '@' Name Param* '=' Exp ';'    (Macro declaration)
       |   '+' Name        '=' Exp ';'    (Set binding declaration)
 ```
 
-
-Expressions
-~~~~~~~~~~~
+### Expressions
 
 ```
 Exp  ::=  Ref                     (External reference)
@@ -38,8 +35,7 @@ Param ::= Name                    (Call-by-value parameter)
        |  '~' Name                (Explicitly call-by-name  parameter)
 ```
 
-Substitutions
-~~~~~~~~~~~~~
+### Substitutions
 
 ```
 Train ::= Car+                    (Substitution train)
@@ -53,8 +49,7 @@ Bump  ::= Name ('^' Nat)? ':' Nat
 ```
 
 
-Syntactic Sugar
-~~~~~~~~~~~~~~~
+### Syntactic Sugar
 
 ```
  Exp '$' Exp Exp  =  Exp (Exp Exp)
