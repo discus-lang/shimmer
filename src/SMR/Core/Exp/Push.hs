@@ -17,6 +17,50 @@ pushHead xx
         XKey _ _        -> Nothing
 
 
+pushDeep :: Exp s p -> Maybe (Exp s p)
+pushDeep xx
+ = case xx of
+        XRef _          -> Nothing
+        XVar _ _        -> Nothing
+
+        XKey k x
+         |  Just x'     <- pushDeep x
+         -> Just $ XKey k x'
+
+         | otherwise    -> Nothing
+
+
+        XApp x1 xs2
+         |  Just x1'    <- pushDeep x1
+         -> Just $ XApp x1' xs2
+
+         |  Just xs2'   <- pushDeepFirst xs2
+         -> Just $ XApp x1 xs2'
+
+         |  otherwise   -> Nothing
+
+
+        XAbs ns x
+         -> case pushDeep x of
+                Nothing -> Nothing
+                Just x' -> Just (XAbs ns x')
+
+        XSub cs1 x2     -> pushTrain cs1 x2
+
+
+pushDeepFirst :: [Exp s p] -> Maybe [Exp s p]
+pushDeepFirst [] = Nothing
+pushDeepFirst (x : xs)
+ = case pushDeep x of
+        Nothing
+         |  Just xs'    <- pushDeepFirst xs
+         -> Just (x : xs')
+         | otherwise    -> Nothing
+
+        Just x'
+         -> Just (x' : xs)
+
+
 -- | Push a substitution train down into an expression to reveal
 --   the head constructor.
 pushTrain :: [Car s p] -> Exp s p -> Maybe (Exp s p)

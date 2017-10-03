@@ -69,8 +69,8 @@ buildExp ctx xx
                 _       -> ppExp
 
         XAbs vs x
-         -> let go []        = ". "
-                go (p1 : []) = buildParam p1 <> ". "
+         -> let go []        = "."
+                go (p1 : []) = buildParam p1 <> "."
                 go (p1 : ps) = buildParam p1 <> " " <> go ps
                 exp          = "\\" <> go vs <> buildExp CtxTop x
             in  case ctx of
@@ -79,10 +79,14 @@ buildExp ctx xx
                  _      -> exp
 
         XSub train x
-         |  length train == 0  -> buildExp ctx x
+         |  length train == 0
+         -> buildExp ctx x
          |  otherwise
-         -> buildTrain train <> "." <> buildExp CtxTop x
-
+         -> let exp     = buildTrain train <> "." <> buildExp CtxTop x
+            in  case ctx of
+                 CtxArg  -> parens exp
+                 CtxFun  -> parens exp
+                 _       -> exp
 
 
 buildParam :: Param -> Builder

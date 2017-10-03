@@ -134,12 +134,7 @@ snvBump :: [Name] -> Snv s p -> Snv s p
 snvBump ns (SSnv ts)
  = SSnv $ mapMaybe (snvBump1 ns) ts
  where
-        snvBump1 names b
-         | ((name, depth), x) <- b
-         , elem name names
-         = Nothing
-
-         | ((name, depth), x) <- b
+        snvBump1 names ((name, depth), x)
          = Just ( (name, depth + (if elem name names then 1 else 0))
                 , upsApply (UUps (map (\name' -> ((name', 0), 1)) names)) x)
 
@@ -217,9 +212,7 @@ upsBump ns (UUps bs)
         upsBump1 ns l
          | ((n, d), inc) <- l
          , elem n ns
-         = if d == 0
-                then Nothing
-                else Just ((n, d + 1), inc)
+         = Just ((n, d + 1), inc)
 
          | otherwise
          = Just l

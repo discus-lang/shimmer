@@ -3,17 +3,17 @@ module Main where
 import SMR.Core.Exp.Base
 import SMR.Core.Exp.Train
 import SMR.Core.Exp.Push
+import qualified SMR.CLI.Config                 as Config
+import qualified SMR.CLI.Repl                   as Repl
 import qualified SMR.Source.Parser              as Source
 import qualified SMR.Source.Lexer               as Source
 import qualified SMR.Source.Pretty              as Source
-import qualified SMR.CLI.Config                 as Config
 import qualified System.Environment             as System
 import qualified System.Exit                    as System
 import qualified System.IO                      as System
-import qualified System.Console.Haskeline       as HL
-import qualified Data.Char                      as Char
 import qualified Data.Text.Lazy.IO              as TL
 import qualified Data.Text.Lazy.Builder         as BL
+import qualified Data.Char                      as Char
 
 main :: IO ()
 main
@@ -68,31 +68,16 @@ runRepl path
                 , Source.configReadPrm  = Just }
 
         case Source.parseDecls config ts of
-         Left err       -> error $ show err
-         Right decls    -> repl_start decls
+         Left err
+          -> error $ show err
+
+         Right decls
+          -> Repl.replStart
+                $ Repl.State
+                { Repl.stateMode        = Repl.ModeNone
+                , Repl.stateDecls       = decls }
 
 
 
-repl_start :: [Decl s p] -> IO ()
-repl_start decls
- = HL.runInputT HL.defaultSettings (repl_loop decls)
-
-repl_loop  :: [Decl s p] -> HL.InputT IO ()
-repl_loop decls
- = do   minput  <- HL.getInputLine "> "
-        case minput of
-         Nothing
-          -> return ()
-
-         Just "quit"
-          -> return ()
-
-         Just input
-          | all Char.isSpace input
-          -> repl_loop decls
-
-          | otherwise
-          -> do HL.outputStrLn $ "Input was: " ++ input
-                repl_loop decls
 
 
