@@ -47,28 +47,27 @@ buildExp
         => Ctx -> Exp s p -> Builder
 buildExp ctx xx
  = case xx of
-        XRet vs
-         -> let go []             = ">"
-                go (x : [])       = buildExp CtxTop x  <> ">"
-                go (x1 : x2 : xs) = buildExp CtxTop x1 <> ", " <> go xs
-            in  go (V.toList vs)
-
         XRef r    -> buildRef r
-
-        XVar n 0  -> B.fromText n
-        XVar n d  -> B.fromText n <> "^" <> B.fromString (show d)
-
-        XApp x1 x2
-         -> let exp     = buildExp CtxFun x1 <> " " <> buildExp CtxArg x2
-            in case ctx of
-                CtxArg  -> parens exp
-                _       -> exp
 
         XKey k1 x2
          -> let exp     = buildKey k1 <> " " <> buildExp CtxArg x2
             in  case ctx of
                  CtxArg -> parens exp
                  _      -> exp
+
+        XVar n 0  -> B.fromText n
+        XVar n d  -> B.fromText n <> "^" <> B.fromString (show d)
+
+        XApp x1 xs2
+         -> let ppExp   =  buildExp CtxFun x1 <> " " <> go (V.toList xs2)
+
+                go []             = ""
+                go (x : [])       = buildExp CtxArg x
+                go (x1 : x2 : xs) = buildExp CtxArg x1 <> " " <> go (x2 : xs)
+
+            in case ctx of
+                CtxArg  -> parens ppExp
+                _       -> ppExp
 
         XAbs vs x
          -> let go []        = ". "
@@ -79,7 +78,6 @@ buildExp ctx xx
                  CtxArg -> parens exp
                  CtxFun -> parens exp
                  _      -> exp
-
 
         XSub train x
          |  V.length train == 0  -> buildExp ctx x

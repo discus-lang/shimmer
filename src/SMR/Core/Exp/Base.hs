@@ -17,20 +17,17 @@ data Decl s p
 -- | Expression,
 --   parameterised by the types of symbols and primitives
 data Exp s p
-        -- | Return multiple values.
-        = XRet  (Vector (Exp s p))
-
         -- | Reference to an external thing.
-        | XRef  (Ref s p)
+        = XRef  (Ref s p)
 
         -- | Variable name with a binding depth.
         | XVar  Name Int
 
-        -- | Application of a function expression to an argument.
-        | XApp  (Exp s p) (Exp s p)
-
         -- | Keyed expressions.
         | XKey  Key (Exp s p)
+
+        -- | Application of a function expression to an argument.
+        | XApp  (Exp s p) (Vector (Exp s p))
 
         -- | Abstraction with a list of parameters and a body expression.
         | XAbs  (Vector Param) (Exp s p)

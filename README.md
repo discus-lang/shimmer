@@ -12,12 +12,11 @@ Decl ::=  '@' Name Param* '=' Exp ';'    (Macro declaration)
 
 ```
 Exp  ::=  Ref                     (External reference)
-      |   Exp Exp                 (Function application)
       |   Key Exp                 (Keyword  application)
+      |   Exp Exp+                (Function application)
       |   Name ('^' Nat)?         (Variable with lifting specifier)
       |   '\' Param+ '.' Exp      (Function abstraction)
       |   Train      '.' Exp      (Substitution train)
-      |   '<' Exp,+ '>'           (Return multiple expressions)
 
 Ref  ::= '@' Name                 (Macro reference)
       |  '+' Name                 (Set reference)

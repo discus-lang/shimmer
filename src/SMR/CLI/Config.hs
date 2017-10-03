@@ -16,8 +16,6 @@ data Mode
         deriving Show
 
 
-
-
 -- | Command line config.
 data Config
         = Config

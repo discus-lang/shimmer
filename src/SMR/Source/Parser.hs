@@ -113,7 +113,7 @@ pExp c
         P.alt
             (do _       <- pPunc '$'
                 xRest   <- pExp c
-                return  $  XApp xHead xRest)
+                return  $  XApp xHead (V.singleton xRest))
             (return xHead)
  ]
 
@@ -144,7 +144,7 @@ pExpApp c
         xsArgs  <- P.some (pExpAtom c)
         case xsArgs of
          []  -> return $ xFun
-         _   -> return $ foldl XApp xFun xsArgs
+         _   -> return $ XApp xFun (V.fromList xsArgs)
  ]
 
 
@@ -157,13 +157,6 @@ pExpAtom c
         x       <- pExp c
         _       <- pPunc ')'
         return x
-
-
-        -- Multiple return values.
- , do   _       <- pPunc '<'
-        xsArgs  <- P.sepBy (pExp c) (pPunc ',')
-        _       <- pPunc '>'
-        return  $ XRet $ V.fromList xsArgs
 
 
         -- Named variable with or without index.
