@@ -23,7 +23,7 @@ data Exp s p
         | XVar  Name Int
 
         -- | Keyed expressions.
-        | XKey  Key (Exp s p)
+        | XKey  Key       [Exp s p]
 
         -- | Application of a function expression to an argument.
         | XApp  (Exp s p) [Exp s p]

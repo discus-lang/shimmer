@@ -132,12 +132,9 @@ pExpApp c
                  else P.fail
 
         xsArgs  <- P.some (pExpAtom c)
-
         case xsArgs of
-         xFirst : xsRest
-             -> return $ makeXApps (XKey nKey xFirst) xsRest
-
          []  -> P.fail
+         _   -> return $ XKey nKey xsArgs
 
         -- Application of some other expression.
  , do   xFun    <- pExpAtom c

@@ -48,22 +48,23 @@ buildExp ctx xx
  = case xx of
         XRef r    -> buildRef r
 
-        XKey k1 x2
-         -> let exp     = buildKey k1 <> " " <> buildExp CtxArg x2
-            in  case ctx of
-                 CtxArg -> parens exp
-                 _      -> exp
-
         XVar n 0  -> B.fromText n
         XVar n d  -> B.fromText n <> "^" <> B.fromString (show d)
 
-        XApp x1 xs2
-         -> let ppExp   =  buildExp CtxFun x1 <> " " <> go xs2
-
+        XKey k1 xs2
+         -> let ppExp   = buildKey k1 <> " " <> go xs2
                 go []             = ""
                 go (x : [])       = buildExp CtxArg x
                 go (x1 : x2 : xs) = buildExp CtxArg x1 <> " " <> go (x2 : xs)
+            in  case ctx of
+                 CtxArg -> parens ppExp
+                 _      -> ppExp
 
+        XApp x1 xs2
+         -> let ppExp   =  buildExp CtxFun x1 <> " " <> go xs2
+                go []             = ""
+                go (x : [])       = buildExp CtxArg x
+                go (x1 : x2 : xs) = buildExp CtxArg x1 <> " " <> go (x2 : xs)
             in case ctx of
                 CtxArg  -> parens ppExp
                 _       -> ppExp
