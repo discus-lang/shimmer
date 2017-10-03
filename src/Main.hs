@@ -1,6 +1,7 @@
 
 module Main where
 import SMR.Core.Exp.Base
+import SMR.Core.Exp.Train
 import qualified SMR.Source.Parser              as Source
 import qualified SMR.Source.Lexer               as Source
 import qualified SMR.Source.Pretty              as Source
