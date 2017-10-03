@@ -5,7 +5,6 @@ import Data.Monoid
 import Data.Text                                (Text)
 import Data.Text.Lazy.Builder                   (Builder)
 import qualified Data.Text.Lazy.Builder         as B
-import qualified Data.Vector                    as V
 
 
 -- Class ----------------------------------------------------------------------
@@ -59,7 +58,7 @@ buildExp ctx xx
         XVar n d  -> B.fromText n <> "^" <> B.fromString (show d)
 
         XApp x1 xs2
-         -> let ppExp   =  buildExp CtxFun x1 <> " " <> go (V.toList xs2)
+         -> let ppExp   =  buildExp CtxFun x1 <> " " <> go xs2
 
                 go []             = ""
                 go (x : [])       = buildExp CtxArg x
@@ -73,14 +72,14 @@ buildExp ctx xx
          -> let go []        = ". "
                 go (p1 : []) = buildParam p1 <> ". "
                 go (p1 : ps) = buildParam p1 <> " " <> go ps
-                exp          = "\\" <> go (V.toList vs) <> buildExp CtxTop x
+                exp          = "\\" <> go vs <> buildExp CtxTop x
             in  case ctx of
                  CtxArg -> parens exp
                  CtxFun -> parens exp
                  _      -> exp
 
         XSub train x
-         |  V.length train == 0  -> buildExp ctx x
+         |  length train == 0  -> buildExp ctx x
          |  otherwise
          -> buildTrain train <> "." <> buildExp CtxTop x
 
@@ -105,7 +104,7 @@ buildKey kk
 -- Train ----------------------------------------------------------------------
 buildTrain  :: (Build s, Build p) => Train s p -> Builder
 buildTrain cs
- = go (V.toList cs)
+ = go cs
  where  go []           = ""
         go (c : cs)     = go cs <> buildCar c
 
@@ -121,7 +120,7 @@ buildCar cc
 -- Snv ------------------------------------------------------------------------
 buildSnv  :: (Build s, Build p) => Snv s p -> Builder
 buildSnv (SSnv vs)
- = "[" <> go (V.toList $ V.reverse vs) <> "]"
+ = "[" <> go (reverse vs) <> "]"
  where  go []   = ""
         go (b : [])     = buildSnvBind b
         go (b : bs)     = buildSnvBind b <> ", " <> go bs
@@ -141,7 +140,7 @@ buildSnvBind ((name, bump), xx)
 -- Ups ------------------------------------------------------------------------
 buildUps :: Ups -> Builder
 buildUps (UUps vs)
- = "{" <> go (V.toList $ V.reverse vs) <> "}"
+ = "{" <> go (reverse vs) <> "}"
  where  go []   = ""
         go (b : [])     = buildUpsBump b
         go (b : bs)     = buildUpsBump b <> ", " <> go bs

@@ -3,7 +3,6 @@ module SMR.Core.Exp.Train where
 import SMR.Core.Exp.Base
 import Data.Maybe
 import qualified Data.Text      as T
-import qualified Data.Vector    as V
 
 
 -- Train ----------------------------------------------------------------------
@@ -84,8 +83,8 @@ trainApply cs1 xx
         XRef (RSym n)   -> xx
         XRef (RPrm n)   -> xx
         XVar name depth -> trainApplyVar cs1 name depth
-        XSub cs2  x2    -> trainApply (trainAppend (V.toList cs2) cs1) x2
-        _               -> XSub (V.fromList cs1) xx
+        XSub cs2  x2    -> trainApply (trainAppend cs2 cs1) x2
+        _               -> XSub cs1 xx
 
 -- Apply a train onto a variable of a given name and depth.
 trainApplyVar :: [Car s p] -> Name -> Int -> Exp s p
@@ -118,14 +117,13 @@ carIsEmpty c
 -- | Build a substitution from lists of names and arguments.
 snvOfNamesArgs :: [Name] -> [Exp s p] -> Snv s p
 snvOfNamesArgs ns xs
- = SSnv (V.zip  (V.zip (V.fromList ns) (V.replicate (length ns) 0))
-                (V.fromList xs))
+ = SSnv (zip  (zip ns (replicate (length ns) 0)) xs)
 
 
 -- | Check if the given substitution is empty.
 snvIsEmpty :: Snv s p -> Bool
 snvIsEmpty (SSnv bs)
- = case V.toList bs of
+ = case bs of
         []      -> True
         _       -> False
 
@@ -134,7 +132,7 @@ snvIsEmpty (SSnv bs)
 --   the given parameter names.
 snvBump :: [Name] -> Snv s p -> Snv s p
 snvBump ns (SSnv ts)
- = SSnv $ V.fromList $ mapMaybe (snvBump1 ns) $ V.toList ts
+ = SSnv $ mapMaybe (snvBump1 ns) ts
  where
         snvBump1 names b
          | ((name, depth), x) <- b
@@ -143,16 +141,14 @@ snvBump ns (SSnv ts)
 
          | ((name, depth), x) <- b
          = Just ( (name, depth + (if elem name names then 1 else 0))
-                , upsApply
-                   (UUps $ V.fromList
-                        (map (\name' -> ((name', 0), 1)) names)) x)
+                , upsApply (UUps (map (\name' -> ((name', 0), 1)) names)) x)
 
 
 -- | Wrap a train consisting of a single simultaneous substitution
 --   around an expression.
 snvApply :: Bool -> Snv s p -> Exp s p -> Exp s p
 snvApply isRec snv@(SSnv bs) xx
- = case V.toList bs of
+ = case bs of
         []        -> xx
         _ | isRec -> trainApply (CRec snv : []) xx
         _         -> trainApply (CSim snv : []) xx
@@ -161,14 +157,14 @@ snvApply isRec snv@(SSnv bs) xx
 -- | Apply a substitution to a variable of a given name and depth.
 snvApplyVar :: Bool -> Snv s p -> Name -> Int -> Exp s p
 snvApplyVar isRec snv@(SSnv bs) name depth
- = case V.toList bs of
+ = case bs of
         []
          -> XVar name depth
 
         b'@((name', depth'), x') : bs'
          |  name  == name'
          ,  depth == depth'
-         -> if isRec then XSub (V.fromList $ CRec snv : []) x'
+         -> if isRec then XSub (CRec snv : []) x'
                      else x'
 
          |  name   == name'
@@ -176,14 +172,14 @@ snvApplyVar isRec snv@(SSnv bs) name depth
          -> XVar name (depth - 1)
 
          |  otherwise
-         -> snvApplyVar isRec (SSnv $ V.fromList bs') name depth
+         -> snvApplyVar isRec (SSnv bs') name depth
 
 
 -- Ups ------------------------------------------------------------------------
 -- | Check if the given ups is empty.
 upsIsEmpty :: Ups -> Bool
 upsIsEmpty (UUps bs)
- = case V.toList bs of
+ = case bs of
         []      -> True
         _       -> False
 
@@ -191,7 +187,7 @@ upsIsEmpty (UUps bs)
 -- | Wrap an expression in a train consisting of a single ups.
 upsApply :: Ups -> Exp s p -> Exp s p
 upsApply ups@(UUps us) xx
- = case V.toList us of
+ = case us of
         []      -> xx
         _       -> trainApply ((CUps ups) : []) xx
 
@@ -199,24 +195,24 @@ upsApply ups@(UUps us) xx
 -- | Apply an ups to a variable.
 upsApplyVar :: Ups -> Name -> Int -> Exp s n
 upsApplyVar (UUps bs) name ix
- = case V.toList bs of
+ = case bs of
         []
          -> XVar name ix
 
         u'@((name', depth'), inc') : bs'
          |  name   == name'
          ,  depth' <= ix
-         -> upsApplyVar (UUps $ V.fromList bs') name (ix + inc')
+         -> upsApplyVar (UUps bs') name (ix + inc')
 
          |  otherwise
-         -> upsApplyVar (UUps $ V.fromList bs') name ix
+         -> upsApplyVar (UUps bs') name ix
 
 
 -- | Bump ups (substitution lifting) due to pushing it
 --   under an absraction with the given named binders.
 upsBump :: [Name] -> Ups -> Ups
 upsBump ns (UUps bs)
- = UUps $ V.fromList $ mapMaybe (upsBump1 ns) $ V.toList bs
+ = UUps $ mapMaybe (upsBump1 ns) bs
  where
         upsBump1 ns l
          | ((n, d), inc) <- l
@@ -232,7 +228,7 @@ upsBump ns (UUps bs)
 -- | Combine two lists of ups.
 upsCombine :: Ups -> Ups -> Ups
 upsCombine (UUps ts1) (UUps ts2)
- = UUps (V.fromList $ foldr upsCombineBump (V.toList ts2) (V.toList ts1))
+ = UUps (foldr upsCombineBump ts2 ts1)
 
 
 -- | Combine a bump with an existing list of them.

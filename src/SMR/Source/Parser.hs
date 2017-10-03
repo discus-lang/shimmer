@@ -81,7 +81,7 @@ pDecl c
           _       <- pPunc ';'
           if length psParam == 0
            then return (DeclMac name xBody)
-           else return (DeclMac name $ XAbs (V.fromList psParam) xBody)
+           else return (DeclMac name $ XAbs psParam xBody)
 
  , P.enterOn (pNameOfSpace SSet) ExContextDecl $ \name
     -> do _       <- pPunc '='
@@ -100,20 +100,20 @@ pExp c
         psParam <- P.some pParam
         _       <- pPunc '.'
         xBody   <- pExp c
-        return  $ XAbs (V.fromList psParam) xBody
+        return  $ XAbs  psParam xBody
 
         -- Substitution train.
  , do   csTrain <- pTrain c
         _       <- pPunc '.'
         xBody   <- pExp c
-        return  $  XSub (V.reverse $ V.fromList csTrain) xBody
+        return  $  XSub (reverse csTrain) xBody
 
         -- Application possibly using '$'
  , do   xHead   <- pExpApp c
         P.alt
             (do _       <- pPunc '$'
                 xRest   <- pExp c
-                return  $  XApp xHead (V.singleton xRest))
+                return  $  XApp xHead [xRest])
             (return xHead)
  ]
 
@@ -144,7 +144,7 @@ pExpApp c
         xsArgs  <- P.some (pExpAtom c)
         case xsArgs of
          []  -> return $ xFun
-         _   -> return $ XApp xFun (V.fromList xsArgs)
+         _   -> return $ XApp xFun xsArgs
  ]
 
 
@@ -252,12 +252,12 @@ pCarSimRec c
                 bs      <- P.sepBy (pBind c) (pPunc ',')
                 _       <- pPunc ']'
                 _       <- pPunc ']'
-                return  $ CRec (SSnv (V.reverse $ V.fromList bs)))
+                return  $ CRec (SSnv (reverse bs)))
 
                 -- Simultaneous substitution.
          (do    bs      <- P.sepBy (pBind c) (pPunc ',')
                 _       <- pPunc ']'
-                return  $ CSim (SSnv (V.reverse $ V.fromList bs)))
+                return  $ CSim (SSnv (reverse bs)))
 
 
 -- | Parser for a binding.
@@ -290,7 +290,7 @@ pUps
  = do   _       <- pPunc '{'
         bs      <- P.sepBy pBump (pPunc ',')
         _       <- pPunc '}'
-        return  $ UUps (V.reverse $ V.fromList bs)
+        return  $ UUps (reverse bs)
 
 
 -- | Parser for a bump.

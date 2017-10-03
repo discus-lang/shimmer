@@ -3,7 +3,6 @@
 module SMR.Core.Exp.Base where
 import Data.Text                (Text)
 import Data.Vector              (Vector)
-import qualified Data.Vector    as V
 
 
 -- | Top-level declaration,
@@ -27,10 +26,10 @@ data Exp s p
         | XKey  Key (Exp s p)
 
         -- | Application of a function expression to an argument.
-        | XApp  (Exp s p) (Vector (Exp s p))
+        | XApp  (Exp s p) [Exp s p]
 
         -- | Abstraction with a list of parameters and a body expression.
-        | XAbs  (Vector Param) (Exp s p)
+        | XAbs  [Param] (Exp s p)
 
         -- | Substitution train applied to an expression.
         --   The train car at the head of the list is applied first.
@@ -40,7 +39,7 @@ data Exp s p
 
 -- | Substitution train.
 type Train s p
-        = Vector (Car s p)
+        = [Car s p]
 
 
 -- | Function parameter.
@@ -93,7 +92,7 @@ data Car s p
 -- | Explicit substitution map,
 --   parameterised by the types used for symbols and primitives.
 data Snv s p
-        = SSnv (Vector (SnvBind s p))
+        = SSnv [SnvBind s p]
         deriving Show
 
 type SnvBind s p
@@ -103,7 +102,7 @@ type SnvBind s p
 -- | Lifting indicator,
 --   mapping name and binding depth to number of levels to lift.
 data Ups
-        = UUps (Vector UpsBump)
+        = UUps [UpsBump]
         deriving Show
 
 type UpsBump

@@ -2,6 +2,7 @@
 module Main where
 import SMR.Core.Exp.Base
 import SMR.Core.Exp.Train
+import SMR.Core.Exp.Push
 import qualified SMR.Source.Parser              as Source
 import qualified SMR.Source.Lexer               as Source
 import qualified SMR.Source.Pretty              as Source
