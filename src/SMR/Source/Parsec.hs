@@ -1,4 +1,5 @@
 
+-- | Parser combinator framework.
 module SMR.Source.Parsec where
 import qualified SMR.Data.Bag   as Bag
 import SMR.Data.Bag             (Bag)
@@ -20,32 +21,32 @@ data Parser t e a
 --      (a) type of value to parse.
 --
 data ParseResult t e a
-        -- Parser failed after consuming no input.
-        --  The parser looked at one or more tokens at the front of the
-        --  input but based on these the input does not look like whatever
-        --  syntax the parser was supposed to parse.
+        -- | Parser failed after consuming no input.
+        --   The parser looked at one or more tokens at the front of the
+        --   input but based on these the input does not look like whatever
+        --   syntax the parser was supposed to parse.
         = ParseSkip
-            (Bag (Blocker t e)) -- ^ Where we got blocked trying other parses.
+            (Bag (Blocker t e)) --  Where we got blocked trying other parses.
 
-        -- Parser yielding a value after consuming no input.
-        --  The parser returned a value without looking at any tokens,
-        --  this is a pure value returning action.
+        -- | Parser yielding a value after consuming no input.
+        --   The parser returned a value without looking at any tokens,
+        --   this is a pure value returning action.
         | ParseReturn
-            (Bag (Blocker t e)) -- ^ Where we got blocked trying other parses.
-            a                   -- ^ Produced value.
+            (Bag (Blocker t e)) --   Where we got blocked trying other parses.
+            a                   --   Produced value.
 
-        -- Parse failed after partially consuming input.
+        -- | Parse failed after partially consuming input.
         --   The parser thought that the input sequence looked like what it
         --   was supposed to parse, but complete parsing failed once it
         --   had committed.
         | ParseFailure
-           (Bag (Blocker t e))  -- ^ Where we got blocked trying other parses.
+           (Bag (Blocker t e))  --   Where we got blocked trying other parses.
 
-        -- Parse succeeded yielding a value after consuming input.
+        -- | Parse succeeded yielding a value after consuming input.
         --   We have a complete value, and have consumed some input tokens.
         | ParseSuccess
-            a                   -- ^ Produced value.
-           [t]                  -- ^ Remaining input tokens.
+            a                   --   Produced value.
+           [t]                  --   Remaining input tokens.
         deriving Show
 
 

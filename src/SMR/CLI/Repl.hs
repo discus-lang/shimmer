@@ -31,7 +31,9 @@ data State s p
 -------------------------------------------------------------------------------
 replStart :: State Text Text -> IO ()
 replStart state
- = HL.runInputT HL.defaultSettings (replLoop state)
+ = HL.runInputT HL.defaultSettings
+ $ do   HL.outputStrLn "Shimmer, version 0.1. The Lambda Machine."
+        replLoop state
 
 
 -- | Main repl loop dispatcher

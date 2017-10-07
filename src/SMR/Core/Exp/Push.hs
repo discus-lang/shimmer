@@ -17,6 +17,8 @@ pushHead xx
         XKey _ _        -> Nothing
 
 
+-- | Push down the left-most substitution train in an expression,
+--   or 'Nothing' if there isn't one.
 pushDeep :: Exp s p -> Maybe (Exp s p)
 pushDeep xx
  = case xx of
@@ -28,7 +30,6 @@ pushDeep xx
          -> Just $ XKey k1 xs2'
 
          | otherwise    -> Nothing
-
 
         XApp x1 xs2
          |  Just x1'    <- pushDeep x1
@@ -48,6 +49,7 @@ pushDeep xx
         XSub cs1 x2     -> pushTrain cs1 x2
 
 
+-- | Push down the first substiution train in the given list.
 pushDeepFirst :: [Exp s p] -> Maybe [Exp s p]
 pushDeepFirst [] = Nothing
 pushDeepFirst (x : xs)

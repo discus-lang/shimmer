@@ -8,21 +8,32 @@ import qualified SMR.Data.Bag           as Bag
 import qualified Data.Text              as Text
 
 -------------------------------------------------------------------------------
+-- | What we were expecting at the point there was a parse error.
 data Expected t s p
-        -- Base expectactions are of particular tokens appearing on the input.
+        -- | Expecting end of input.
         = ExBaseEnd
+
+        -- | Expecting a name in the given namespace.
         | ExBaseNameOf  Space
-        | ExBaseNat
-        | ExBasePunc    Char
-        | ExBaseMsg     String
+
+        -- | Expecting a name in any namespace.
         | ExBaseNameAny
 
-        -- Contextual expectations, which indicate what we were trying
-        -- to parse while we had some other expectation.
+        -- | Expecting a natural number.
+        | ExBaseNat
+
+        -- | Expecting a punctuation character.
+        | ExBasePunc    Char
+
+        -- | Expecting something described by the given message.
+        | ExBaseMsg     String
+
+        -- | Expecting something while parsing a declaration.
         | ExContextDecl
                 Text
                 (Bag (Blocker t (Expected t s p)))
 
+        -- | Expecting something while parsing a binding.
         | ExContextBind
                 Text
                 (Bag (Blocker t (Expected t s p)))
@@ -51,6 +62,7 @@ pprExpected bb
          ++ (unlines $ map pprBlocker $ Bag.toList es)
 
 
+-- | Pretty print a blocker.
 pprBlocker
         :: (Show t, Show s, Show p)
         => Blocker t (Expected t s p) -> String
@@ -67,6 +79,7 @@ data ParseError t e
         deriving Show
 
 
+-- | Pretty print a parser error.
 pprParseError
         :: (Show t, Show s, Show p)
         => ParseError t (Expected t s p) -> String

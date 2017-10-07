@@ -7,6 +7,8 @@ data Location
         = L  Int Int
         deriving Show
 
+
+-- | A thing located at the given range in a source file.
 data Located a
         = LL Location Location a
         deriving Show

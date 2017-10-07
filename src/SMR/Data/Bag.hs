@@ -14,7 +14,7 @@ data Bag a
         deriving Show
 
 
--- O(1). Construct an empty bag.
+-- | O(1). Construct an empty bag.
 nil     :: Bag a
 nil = BagNil
 

@@ -8,19 +8,29 @@ import qualified Data.Text.Lazy.Builder         as B
 
 
 -- Class ----------------------------------------------------------------------
+-- | Class of things that can be converted to text builders.
 class Build a where
  build  :: a -> Builder
 
 instance Build Text where
  build tx = B.fromText tx
 
+-- | Context we're currently in when pretty printing.
+data Ctx
+        = CtxTop        -- ^ Top level context.
+        | CtxFun        -- ^ Functional expression in an an application.
+        | CtxArg        -- ^ Argument expression in an application.
+        deriving Show
 
+
+-- | Wrap a thing in parenthesis.
 parens :: Builder -> Builder
 parens bb
  = "(" <> bb <> ")"
 
 
 -- Decl -----------------------------------------------------------------------
+-- | Yield a builder for a declaration.
 buildDecl
         :: (Build s, Build p)
         => Decl s p -> Builder
@@ -34,13 +44,8 @@ buildDecl dd
 
 
 -- Exp ------------------------------------------------------------------------
-data Ctx
-        = CtxTop        -- ^ Top level context.
-        | CtxFun        -- ^ Functional expression in an an application.
-        | CtxArg        -- ^ Argument expression in an application.
-        deriving Show
 
-
+-- | Yield a builder for an expression.
 buildExp
         :: (Build s, Build p)
         => Ctx -> Exp s p -> Builder
@@ -90,6 +95,7 @@ buildExp ctx xx
                  _       -> exp
 
 
+-- | Yield a builder for a parameter.
 buildParam :: Param -> Builder
 buildParam pp
  = case pp of
@@ -97,6 +103,7 @@ buildParam pp
         PParam n PExp    -> "~" <> B.fromText n
 
 
+-- | Yield a builder for a keyword.
 buildKey :: Key -> Builder
 buildKey kk
  = case kk of
@@ -107,6 +114,7 @@ buildKey kk
 
 
 -- Train ----------------------------------------------------------------------
+-- | Yield a builder for a train.
 buildTrain  :: (Build s, Build p) => Train s p -> Builder
 buildTrain cs
  = go cs
@@ -114,6 +122,7 @@ buildTrain cs
         go (c : cs)     = go cs <> buildCar c
 
 
+-- | Yield a builder for a train car.
 buildCar :: (Build s, Build p) => Car s p -> Builder
 buildCar cc
  = case cc of
@@ -123,6 +132,7 @@ buildCar cc
 
 
 -- Snv ------------------------------------------------------------------------
+-- | Yield a builder for a substitution.
 buildSnv  :: (Build s, Build p) => Snv s p -> Builder
 buildSnv (SSnv vs)
  = "[" <> go (reverse vs) <> "]"
@@ -131,6 +141,7 @@ buildSnv (SSnv vs)
         go (b : bs)     = buildSnvBind b <> ", " <> go bs
 
 
+-- | Yield a builder for a substitution binding.
 buildSnvBind :: (Build s, Build p) => SnvBind s p -> Builder
 buildSnvBind ((name, bump), xx)
  | bump == 0
@@ -143,6 +154,7 @@ buildSnvBind ((name, bump), xx)
 
 
 -- Ups ------------------------------------------------------------------------
+-- | Yield a builder for an ups.
 buildUps :: Ups -> Builder
 buildUps (UUps vs)
  = "{" <> go (reverse vs) <> "}"
@@ -151,6 +163,7 @@ buildUps (UUps vs)
         go (b : bs)     = buildUpsBump b <> ", " <> go bs
 
 
+-- | Yield a builder for an ups bump.
 buildUpsBump :: UpsBump -> Builder
 buildUpsBump ((name, bump), inc)
  | bump == 0
@@ -163,6 +176,7 @@ buildUpsBump ((name, bump), inc)
 
 
 -- Ref ------------------------------------------------------------------------
+-- | Yield a builder for a reference.
 buildRef :: (Build s, Build p) => Ref s p -> Builder
 buildRef rr
  = case rr of
