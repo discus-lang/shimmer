@@ -1,5 +1,7 @@
+{-# LANGUAGE BangPatterns #-}
 module SMR.CLI.Repl where
 import SMR.Core.Exp
+import qualified SMR.CLI.Help                   as Help
 import qualified SMR.Core.Step                  as Step
 import qualified SMR.Prim.Name                  as Prim
 import qualified SMR.Prim.Op                    as Prim
@@ -44,6 +46,7 @@ replStart :: RState -> IO ()
 replStart state
  = HL.runInputT HL.defaultSettings
  $ do   HL.outputStrLn "Shimmer, version 0.1. The Lambda Machine."
+        HL.outputStrLn "Type :help for help."
         replLoop state
 
 
@@ -55,9 +58,6 @@ replLoop state
          Nothing
           -> return ()
 
-         Just "quit"
-          -> return ()
-
          Just input
           |  all Char.isSpace input
           -> case stateMode state of
@@ -65,19 +65,57 @@ replLoop state
                 ModePush xx     -> replPush_next state xx
                 ModeStep c xx   -> replStep_next state c xx
 
-          |  Just str <- List.stripPrefix ":parse" input
-          -> replParse state str
+          | otherwise
+          -> case words input of
+                ":quit"    : _    -> replQuit    state
+                ":help"    : _    -> replHelp    state
+                ":grammar" : _    -> replGrammar state
+                ":prims"   : _    -> replPrims   state
+                ":parse"   : xs   -> replParse   state (unwords xs)
+                ":push"    : xs   -> replPush    state (unwords xs)
+                ":step"    : xs   -> replStep    state (unwords xs)
+                ":steps"   : xs   -> replSteps   state (unwords xs)
+                ":trace"   : xs   -> replTrace   state (unwords xs)
+                _                 -> replSteps   state input
 
-          |  Just str <- List.stripPrefix ":push"  input
-          -> replPush_load state str
 
-          |  Just str <- List.stripPrefix ":step"  input
-          -> replStep_load state str
-
-          |  otherwise
-          -> replSteps_load state input
+-------------------------------------------------------------------------------
+-- | Quit the repl.
+replQuit  :: RState -> HL.InputT IO ()
+replQuit state
+ = do   return ()
 
 
+-------------------------------------------------------------------------------
+-- | Display the help page.
+replHelp  :: RState -> HL.InputT IO ()
+replHelp state
+ = do   HL.outputStrLn $ Help.helpCommands
+        replLoop state
+
+
+-------------------------------------------------------------------------------
+-- | Display the language grammar.
+replGrammar  :: RState -> HL.InputT IO ()
+replGrammar state
+ = do   HL.outputStrLn $ Help.helpGrammar
+        replLoop state
+
+
+-------------------------------------------------------------------------------
+-- | Display the list of primops.
+replPrims  :: RState -> HL.InputT IO ()
+replPrims state
+ = do   HL.outputStrLn
+         $ unlines
+         $ [ "#" ++ (Text.unpack $ name)
+           | p@(Prim.PrimEval { Prim.primEvalName = Prim.PrimOp name })
+                <- Prim.primEvals ]
+
+
+        replLoop state
+
+-------------------------------------------------------------------------------
 -- | Parse and print back an expression.
 replParse :: RState -> String -> HL.InputT IO ()
 replParse state str
@@ -90,14 +128,15 @@ replParse state str
           -> do liftIO  $ TL.putStrLn
                         $ BL.toLazyText
                         $ Source.buildExp Source.CtxTop xx
+                HL.outputStr "\n"
 
                 replLoop state
 
 
 -------------------------------------------------------------------------------
 -- | Parse an expression and push down substitutions.
-replPush_load :: RState -> String -> HL.InputT IO ()
-replPush_load state str
+replPush :: RState -> String -> HL.InputT IO ()
+replPush state str
  = do   result  <- liftIO $ replParseExp state str
         case result of
          Nothing -> replLoop state
@@ -113,34 +152,16 @@ replPush_next state xx
          -> do  liftIO  $ TL.putStrLn
                         $ BL.toLazyText
                         $ Source.buildExp Source.CtxTop xx'
+                HL.outputStr "\n"
 
                 replLoop $ state { stateMode = ModePush xx' }
 
 
 -------------------------------------------------------------------------------
 -- | Parse an expression and single-step it.
-replStep_load :: RState -> String -> HL.InputT IO ()
-replStep_load state str
- = do   result  <- liftIO $ replParseExp state str
-        case result of
-         Nothing -> replLoop state
-
-         Just xx
-          -> let
-                decls   = Map.fromList
-                        $ [ (n, x) | DeclMac n x <- stateDecls state ]
-
-                prims   = Map.fromList
-                        $ [ (Prim.primEvalName p, p) | p <- Prim.primEvals ]
-
-                config  = Step.Config
-                        { Step.configUnderLambdas = True
-                        , Step.configHeadArgs     = True
-                        , Step.configDeclsMac     = decls
-                        , Step.configPrims        = prims }
-
-             in replStep_next state config xx
-
+replStep :: RState -> String -> HL.InputT IO ()
+replStep state str
+ = replLoadExp state str replStep_next
 
 -- | Advance the single stepper.
 replStep_next
@@ -168,28 +189,9 @@ replStep_next state config xx
 
 -------------------------------------------------------------------------------
 -- | Parse an expression and normalize it.
-replSteps_load :: RState -> String -> HL.InputT IO ()
-replSteps_load state str
- = do   result  <- liftIO $ replParseExp state str
-        case result of
-         Nothing -> replLoop state
-
-         Just xx
-          -> let
-                decls   = Map.fromList
-                        $ [ (n, x) | DeclMac n x <- stateDecls state ]
-
-                prims   = Map.fromList
-                        $ [ (Prim.primEvalName p, p) | p <- Prim.primEvals ]
-
-                config  = Step.Config
-                        { Step.configUnderLambdas = True
-                        , Step.configHeadArgs     = True
-                        , Step.configDeclsMac     = decls
-                        , Step.configPrims        = prims }
-
-              in replSteps_next state config xx
-
+replSteps :: RState -> String -> HL.InputT IO ()
+replSteps state str
+ = replLoadExp state str replSteps_next
 
 -- | Advance the evaluator stepper.
 replSteps_next
@@ -210,6 +212,64 @@ replSteps_next state config xx
                 HL.outputStr "\n"
 
                 replLoop $ state { stateMode = ModeNone }
+
+
+-------------------------------------------------------------------------------
+-- | Parse an expression and normalize it,
+--   printing out each intermediate state.
+replTrace :: RState -> String -> HL.InputT IO ()
+replTrace state str
+ = replLoadExp state str replTrace_next
+
+-- | Advance the evaluator stepper.
+replTrace_next
+        :: RState -> RConfig -> RExp
+        -> HL.InputT IO ()
+
+replTrace_next state config !xx0
+ = loop xx0
+ where loop !xx
+         = case Step.step config xx of
+            Left (Step.ResultError msg)
+             -> do  HL.outputStrLn
+                        $ Text.unpack
+                        $ Text.pack "error: " <> msg
+
+            Left Step.ResultDone
+             -> replLoop $ state { stateMode = ModeNone }
+
+            Right xx'
+             -> do  liftIO  $ TL.putStrLn
+                            $ BL.toLazyText
+                            $ Source.buildExp Source.CtxTop xx'
+
+                    loop xx'
+
+-------------------------------------------------------------------------------
+replLoadExp
+        :: RState -> String
+        -> (RState -> RConfig -> RExp -> HL.InputT IO ())
+        -> HL.InputT IO ()
+replLoadExp state str eat
+ = do   result  <- liftIO $ replParseExp state str
+        case result of
+         Nothing -> replLoop state
+
+         Just xx
+          -> let
+                decls   = Map.fromList
+                        $ [ (n, x) | DeclMac n x <- stateDecls state ]
+
+                prims   = Map.fromList
+                        $ [ (Prim.primEvalName p, p) | p <- Prim.primEvals ]
+
+                config  = Step.Config
+                        { Step.configUnderLambdas = True
+                        , Step.configHeadArgs     = True
+                        , Step.configDeclsMac     = decls
+                        , Step.configPrims        = prims }
+
+              in eat state config xx
 
 
 -------------------------------------------------------------------------------

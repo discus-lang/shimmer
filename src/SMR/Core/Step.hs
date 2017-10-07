@@ -92,9 +92,12 @@ step config xx
          -> Left ResultDone
 
         -- Application.
+        XApp xF []
+         -> Right xF
+
         XApp{}
          -- Unzip the application and try to step the functional expression first.
-         | Just (xF, xsArgs)    <- takeXApps xx
+         |  Just (xF, xsArgs)    <- takeXApps xx
          -> case step (config { configUnderLambdas = False }) xF of
                 -- Functional expression makes progress.
                 Right xF' -> Right $ makeXApps xF' xsArgs
@@ -215,15 +218,17 @@ stepAppAbs config psParam xBody xsArgs
                 nsParam_sat    = map nameOfParam psParam_sat
                 psParam_remain = drop args psParam
                 snv     = snvOfNamesArgs nsParam_sat xsArgs_sat
-            in  Right $ XApp (snvApply False snv $ XAbs psParam_remain xBody)
-                             xsArgs_remain
+            in  Right $ makeXApps
+                            (snvApply False snv $ XAbs psParam_remain xBody)
+                            xsArgs_remain
 
          -- Over application.
          | otherwise
          -> let nsParam = map nameOfParam psParam
                 snv     = snvOfNamesArgs nsParam xsArgs_sat
-            in  Right $ XApp (snvApply False snv xBody)
-                             xsArgs_remain
+            in  Right $ makeXApps
+                            (snvApply False snv xBody)
+                            xsArgs_remain
 
 
 -------------------------------------------------------------------------------
@@ -284,7 +289,7 @@ stepPrim config pe xsArgs
         -- We have more args than the primitive will accept.
         evalArgs [] xsArgsRemain xsArgsDone
          = case eval (reverse xsArgsDone) of
-                Just xResult    -> Right $ XApp xResult (xsArgsRemain)
+                Just xResult    -> Right $ makeXApps xResult xsArgsRemain
                 Nothing         -> Left ResultDone
 
         -- Evaluate the next argument if needed.

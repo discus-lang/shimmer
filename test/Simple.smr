@@ -25,6 +25,20 @@
         (#nat-mul x (@fac (#nat-sub x #nat'1)));
 
 
+-- Compute the factorial of a number, using an accumulator.
+@fac-acc x
+ = @fac-acc-loop #nat'1 x;
+
+@fac-acc-loop acc x
+ = #if  (#nat-eq x #nat'0)
+        acc
+        (@fac-acc-loop (#nat-mul x acc) (#nat-sub x #nat'1));
+
+@iterate f x n
+ = #if  (#nat-eq n #nat'0)
+        x
+        (@iterate f (f x) (#nat-sub n #nat'1));
+
 @prop-id
  = %all (\a. %impl a a);
 

@@ -12,7 +12,7 @@ data Mode
         | ModeCheck FilePath
 
         -- Start the REPL with the given file.
-        | ModeREPL  FilePath
+        | ModeREPL  (Maybe FilePath)
         deriving Show
 
 
@@ -39,18 +39,30 @@ parseArgs ss config
  = parseArgs ssRest
  $ config { configMode  = ModeCheck filePath }
 
- | "-repl"  : filePath : ssRest <- ss
+ | "-help"  : ssRest <- ss
+ = do   putStr usage
+        System.exitSuccess
+
+ | "--help"  : ssRest <- ss
+ = do   putStr usage
+        System.exitSuccess
+
+
+ | filePath : ssRest <- ss
+ , c : _       <- filePath
+ , c /= '-'
  = parseArgs ssRest
- $ config { configMode  = ModeREPL  filePath }
+ $ config { configMode  = ModeREPL (Just filePath) }
 
  | otherwise
  = do   putStr usage
         System.exitSuccess
 
-
-
 usage :: String
 usage
  = unlines
- [ "shimmer -check FILE.smr      Check that a source file is well formed."
- , "shimmer -repl  FILE.smr      Start the REPL with the given file." ]
+ [ "shimmer                    Start the REPL with no soure file."
+ , "shimmer FILE.smr           Start the REPL with the given file."
+ , "shimmer -help              Display this help page."
+ , "shimmer -check FILE.smr    Check that a source file is well formed." ]
+

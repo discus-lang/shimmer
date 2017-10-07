@@ -8,9 +8,9 @@ import Data.Text        (Text)
 -- | Primitive evaluators for boolean operators.
 primOpsBool :: [PrimEval s Prim]
 primOpsBool
- = [ primOpBool1 "bool-not" "boolean negation" (\b -> not b)
-   , primOpBool2 "bool-and" "boolean and"      (&&)
-   , primOpBool2 "bool-or"  "boolean or"       (||)
+ = [ primOpBool1 "not" "boolean negation" (\b -> not b)
+   , primOpBool2 "and" "boolean and"      (&&)
+   , primOpBool2 "or"  "boolean or"       (||)
    , primOpIf ]
 
 

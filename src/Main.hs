@@ -27,14 +27,14 @@ main
 
         case Config.configMode config of
          Config.ModeNone
-          -> do putStr $ Config.usage
-                System.exitSuccess
+          -> runRepl Nothing
 
          Config.ModeCheck file
           -> runCheck file
 
-         Config.ModeREPL file
-          -> runRepl  file
+         Config.ModeREPL mFile
+          -> runRepl mFile
+
 
 
 runCheck :: FilePath -> IO ()
@@ -60,29 +60,30 @@ runCheck path
                 $ map Source.buildDecl decls
 
 
-runRepl :: FilePath -> IO ()
-runRepl path
- = do   str     <- readFile path
-
-        let (ts, loc, csRest)
-                = Source.lexTokens (Source.L 1 1) str
-
+runRepl :: Maybe FilePath -> IO ()
+runRepl mPath
+ = do
         let config
                 = Source.Config
                 { Source.configReadSym  = Just
                 , Source.configReadPrm  = Prim.readPrim Prim.primOpTextNames }
 
-        case Source.parseDecls config ts of
-         Left err
-          -> error $ show err
+        decls
+         <- case mPath of
+                Nothing -> return []
+                Just path
+                 -> do  str     <- readFile path
 
-         Right decls
-          -> Repl.replStart
-                $ Repl.State
-                { Repl.stateMode        = Repl.ModeNone
-                , Repl.stateDecls       = decls }
+                        let (ts, loc, csRest)
+                                = Source.lexTokens (Source.L 1 1) str
 
+                        case Source.parseDecls config ts of
+                         Left err     -> error $ show err
+                         Right decls' -> return decls'
 
-
+        Repl.replStart
+         $ Repl.State
+         { Repl.stateMode   = Repl.ModeNone
+         , Repl.stateDecls  = decls }
 
 

@@ -8,8 +8,8 @@ import Data.Vector              (Vector)
 -- | Make an application of a function to the given list of arguments,
 --   suppressing the application of there are no arguments.
 makeXApps :: Exp s p -> [Exp s p] -> Exp s p
-makeXApps xFun xsArgs
- = XApp xFun xsArgs
+makeXApps xFun []       = xFun
+makeXApps xFun xsArgs   = XApp xFun xsArgs
 
 
 -- | Take an application of a function to a list of arguments.
