@@ -29,13 +29,25 @@
 @church-zero    = \~s ~z. z;
 @church-succ ~n = \~s ~z. s (n s z);
 
+-- Convert a primitive natural to church encoding.
+@church-fromNat n
+ = @church-iterate @church-succ @church-zero n;
+
+@church-toNat n
+ = n (#nat-add #nat'1) #nat'0;
+
+@church-iterate !f !x !n
+ = #if  (#nat-eq n #nat'0)
+        x
+        (@church-iterate f (f x) (#nat-sub n #nat'1));
+
+
 -- Some numbers.
 @church-one     = @church-succ @church-zero;
 @church-two     = @church-succ @church-one;
 @church-three   = @church-succ @church-two;
 @church-four    = @church-succ @church-three;
 @church-five    = @church-succ @church-four;
-
 
 -- Predecessor.
 @church-pred ~n

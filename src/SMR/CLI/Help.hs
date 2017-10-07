@@ -9,6 +9,7 @@ helpCommands
  , "  :grammar        Show the language grammar."
  , "  :prims          Show the list of available primitives."
  , "  :reload,:r      Reload the current source files."
+ , "  :decls  NAMES?  Show named declarations, or all decls if no names given."
  , "  :parse  EXP     Parse an expression and print it back."
  , "  :push   EXP     Push down substitutions in an expression."
  , "  :step   EXP     Single step evaluate an expression."

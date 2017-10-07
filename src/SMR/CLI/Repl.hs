@@ -19,6 +19,7 @@ import qualified Data.Set                       as Set
 import qualified Data.Text                      as Text
 import Control.Monad.IO.Class
 import Data.Text                                (Text)
+import Data.Set                                 (Set)
 import Data.Maybe
 import Data.Monoid
 
@@ -76,10 +77,18 @@ replLoop state
           -> case words input of
                 ":quit"    : []   -> replQuit    state
                 ":help"    : []   -> replHelp    state
-                ":grammar" : []   -> replGrammar state
-                ":prims"   : []   -> replPrims   state
                 ":reload"  : []   -> replReload  state
                 ":r"       : []   -> replReload  state
+                ":grammar" : []   -> replGrammar state
+                ":prims"   : []   -> replPrims   state
+
+                ":decls"   : xs
+                 -> let strip ('@' : name) = name
+                        strip name         = name
+                    in  replDecls state
+                                $ Set.fromList $ map Text.pack
+                                $ map strip xs
+
                 ":parse"   : xs   -> replParse   state (unwords xs)
                 ":push"    : xs   -> replPush    state (unwords xs)
                 ":step"    : xs   -> replStep    state (unwords xs)
@@ -144,6 +153,32 @@ showForm PExp   = "~"
 
 leftPad n ss
  = ss ++ replicate (n - length ss) ' '
+
+
+-------------------------------------------------------------------------------
+-- | Display the list of current declarations.
+replDecls :: RState -> Set Name -> HL.InputT IO ()
+replDecls state names
+ = do   liftIO  $ mapM_ (printDecl names)
+                $ stateDecls state
+        replLoop state
+
+
+printDecl :: Set Name -> RDecl -> IO ()
+printDecl names decl
+ | Set.null names
+ = do TL.putStr
+         $ BL.toLazyText
+         $ Source.buildDecl decl
+
+ | DeclMac name _ <- decl
+ , Set.member name names
+ = do   TL.putStr
+         $ BL.toLazyText
+         $ Source.buildDecl decl
+
+ | otherwise
+ = return ()
 
 
 -------------------------------------------------------------------------------
