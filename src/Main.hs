@@ -18,6 +18,7 @@ import qualified Data.Text.Lazy.IO              as TL
 import qualified Data.Text.Lazy.Builder         as BL
 import qualified Data.Char                      as Char
 import qualified Data.Set                       as Set
+import qualified Data.Maybe                     as Maybe
 
 
 main :: IO ()
@@ -62,28 +63,10 @@ runCheck path
 
 runRepl :: Maybe FilePath -> IO ()
 runRepl mPath
- = do
-        let config
-                = Source.Config
-                { Source.configReadSym  = Just
-                , Source.configReadPrm  = Prim.readPrim Prim.primOpTextNames }
-
-        decls
-         <- case mPath of
-                Nothing -> return []
-                Just path
-                 -> do  str     <- readFile path
-
-                        let (ts, loc, csRest)
-                                = Source.lexTokens (Source.L 1 1) str
-
-                        case Source.parseDecls config ts of
-                         Left err     -> error $ show err
-                         Right decls' -> return decls'
-
-        Repl.replStart
+ = Repl.replStart
          $ Repl.State
          { Repl.stateMode   = Repl.ModeNone
-         , Repl.stateDecls  = decls }
+         , Repl.stateDecls  = []
+         , Repl.stateFiles  = Maybe.maybeToList mPath }
 
 

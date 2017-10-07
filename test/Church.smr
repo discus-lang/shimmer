@@ -36,6 +36,7 @@
 @church-four    = @church-succ @church-three;
 @church-five    = @church-succ @church-four;
 
+
 -- Predecessor.
 @church-pred ~n
  = @church-fst (n @church-pair-succ @church-pair-zero);

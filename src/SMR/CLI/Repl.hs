@@ -33,12 +33,19 @@ data Mode s p
 
 data State s p
         = State
-        { stateMode     :: Mode s p
-        , stateDecls    :: [Decl s p] }
+        { -- | Current interpreter mode.
+          stateMode     :: Mode s p
+
+          -- | Top-level declarations parsed from source files.
+        , stateDecls    :: [Decl s p]
+
+          -- | Working source files.
+        , stateFiles    :: [FilePath] }
 
 type RState     = State Text Prim.Prim
 type RConfig    = Step.Config Text Prim.Prim
-type RExp       = Exp Text Prim.Prim
+type RDecl      = Decl  Text Prim.Prim
+type RExp       = Exp   Text Prim.Prim
 
 
 -------------------------------------------------------------------------------
@@ -47,7 +54,7 @@ replStart state
  = HL.runInputT HL.defaultSettings
  $ do   HL.outputStrLn "Shimmer, version 0.1. The Lambda Machine."
         HL.outputStrLn "Type :help for help."
-        replLoop state
+        replReload state
 
 
 -- | Main repl loop dispatcher
@@ -67,10 +74,12 @@ replLoop state
 
           | otherwise
           -> case words input of
-                ":quit"    : _    -> replQuit    state
-                ":help"    : _    -> replHelp    state
-                ":grammar" : _    -> replGrammar state
-                ":prims"   : _    -> replPrims   state
+                ":quit"    : []   -> replQuit    state
+                ":help"    : []   -> replHelp    state
+                ":grammar" : []   -> replGrammar state
+                ":prims"   : []   -> replPrims   state
+                ":reload"  : []   -> replReload  state
+                ":r"       : []   -> replReload  state
                 ":parse"   : xs   -> replParse   state (unwords xs)
                 ":push"    : xs   -> replPush    state (unwords xs)
                 ":step"    : xs   -> replStep    state (unwords xs)
@@ -107,13 +116,74 @@ replGrammar state
 replPrims  :: RState -> HL.InputT IO ()
 replPrims state
  = do   HL.outputStrLn
+         $ "  name          params    description"
+
+        HL.outputStrLn
+         $ "  ----          ------    -----------"
+
+        HL.outputStr
          $ unlines
-         $ [ "#" ++ (Text.unpack $ name)
+         [ "  #true                   boolean true"
+         , "  #false                  boolean false"
+         , "  #nat'NAT                natural number"
+         , "" ]
+
+        HL.outputStrLn
+         $ unlines
+         $ [   leftPad 16 ("  #" ++ (Text.unpack $ name))
+            ++ leftPad 10  (concat [showForm f | f <- Prim.primEvalForm p])
+            ++ Text.unpack (Prim.primEvalDesc p)
+
            | p@(Prim.PrimEval { Prim.primEvalName = Prim.PrimOp name })
                 <- Prim.primEvals ]
 
-
         replLoop state
+
+showForm PVal   = "!"
+showForm PExp   = "~"
+
+leftPad n ss
+ = ss ++ replicate (n - length ss) ' '
+
+
+-------------------------------------------------------------------------------
+-- | Reload the current source file.
+replReload :: RState -> HL.InputT IO ()
+replReload state
+ = do
+        let config
+                = Source.Config
+                { Source.configReadSym  = Just
+                , Source.configReadPrm  = Prim.readPrim Prim.primOpTextNames }
+
+        decls   <- liftIO
+                $  fmap concat $ mapM (loadDecls state)
+                $  stateFiles state
+
+        replLoop (state
+                { stateDecls    = decls })
+
+
+loadDecls :: RState -> FilePath -> IO [RDecl]
+loadDecls state path
+ = do
+        let config
+                = Source.Config
+                { Source.configReadSym  = Just
+                , Source.configReadPrm  = Prim.readPrim Prim.primOpTextNames }
+
+        str     <- readFile path
+        let (ts, loc, csRest)
+                = Source.lexTokens (Source.L 1 1) str
+
+        case Source.parseDecls config ts of
+           Left err
+            -> do  putStrLn $ show err
+                   return []
+
+           Right decls
+            -> return decls
+
 
 -------------------------------------------------------------------------------
 -- | Parse and print back an expression.

@@ -49,7 +49,7 @@ primOpIf :: PrimEval s Prim
 primOpIf
  = PrimEval
         (PrimOp "if")
-        "if-then-else operator"
+        "boolean if-then-else operator"
         [PVal, PExp, PExp] fn'
  where
         fn' as0
