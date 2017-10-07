@@ -12,6 +12,7 @@ module SMR.Core.Exp
         , Ups   (..), UpsBump
         , Ref   (..)
         , Name
+        , Text
 
          -- * Compounds
         , makeXApps, takeXApps
@@ -32,5 +33,5 @@ import SMR.Core.Exp.Base
 import SMR.Core.Exp.Compounds
 import SMR.Core.Exp.Train
 import SMR.Core.Exp.Push
-
+import Data.Text                (Text)
 

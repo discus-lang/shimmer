@@ -18,6 +18,13 @@
 -- (@twice (#nat-add #nat'1) #nat'5) #nat'7;
 
 
+-- Compute the factorial of a number.
+@fac x
+ = #if  (#nat-eq x #nat'0)
+        (#nat'1)
+        (#nat-mul x (@fac (#nat-sub x #nat'1)));
+
+
 @prop-id
  = %all (\a. %impl a a);
 

@@ -17,7 +17,7 @@ pprPrim pp
         PrimLitBool True   -> "true"
         PrimLitBool False  -> "false"
 
-        PrimLitNat n       -> Text.pack $ "nat" ++ show n
+        PrimLitNat n       -> Text.pack $ "nat'" ++ show n
 
 
 -- | Parse a primitive name, without the leading '#'.

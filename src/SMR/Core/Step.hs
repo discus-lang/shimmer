@@ -1,5 +1,10 @@
 
-module SMR.Core.Step where
+module SMR.Core.Step
+        ( Config        (..)
+        , Result        (..)
+        , steps
+        , step)
+where
 import SMR.Core.Exp
 import SMR.Prim.Name
 import SMR.Prim.Op.Base
@@ -34,6 +39,18 @@ data Result
 
 
 -------------------------------------------------------------------------------
+-- | Multi-step reduction to normal form.
+steps   :: (Ord p, Show p)
+        => Config s p -> Exp s p
+        -> Either Text (Exp s p)
+steps config xx
+ = case step config xx of
+        Left ResultDone         -> Right xx
+        Left (ResultError err)  -> Left err
+        Right xx'               -> steps config xx'
+
+
+-------------------------------------------------------------------------------
 -- | Single step reduction.
 --
 --   This is a definitional interpreter, intended to be easy to understand
@@ -45,7 +62,6 @@ data Result
 step    :: (Ord p, Show p)
         => Config s p -> Exp s p
         -> Either Result (Exp s p)
-
 step config xx
  = case xx of
         -- Reference
@@ -89,21 +105,21 @@ step config xx
                 -- Functional expression is done.
                 Left ResultDone
                  -> case xF of
-                        XRef (RPrm primF)  -> stepAppPrm config primF xsArgs
-                        XAbs nsParam xBody -> stepAppAbs config nsParam xBody xsArgs
-                        XKey KSeq xBody    -> stepAppSeq xBody xsArgs
-                        XKey KTag xBody    -> stepAppTag config xBody xsArgs
+                     XRef (RPrm primF)  -> stepAppPrm config primF xsArgs
+                     XAbs nsParam xBody -> stepAppAbs config nsParam xBody xsArgs
+                     XKey KSeq xBody    -> stepAppSeq xBody xsArgs
+                     XKey KTag xBody    -> stepAppTag config xBody xsArgs
 
-                        -- Functional expression is inactive, but optionally
-                        -- continue reducing arguments to eliminate all of
-                        -- the redexes in the expression.
-                        _ |  configHeadArgs config
-                          -> case stepFirstVal config xsArgs of
-                                Right xsArgs' -> Right $ makeXApps xF xsArgs'
-                                Left res      -> Left res
+                     -- Functional expression is inactive, but optionally
+                     -- continue reducing arguments to eliminate all of
+                     -- the redexes in the expression.
+                     _ |  configHeadArgs config
+                       -> case stepFirstVal config xsArgs of
+                           Right xsArgs' -> Right $ makeXApps xF xsArgs'
+                           Left res      -> Left res
 
-                          |  otherwise
-                          -> Left ResultDone
+                       |  otherwise
+                       -> Left ResultDone
 
         -- Substitution trains.
         XSub{}

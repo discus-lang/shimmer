@@ -74,9 +74,8 @@ replLoop state
           |  Just str <- List.stripPrefix ":step"  input
           -> replStep_load state str
 
-          | otherwise
-          -> do HL.outputStrLn $ "Input was: " ++ input
-                replLoop state
+          |  otherwise
+          -> replSteps_load state input
 
 
 -- | Parse and print back an expression.
@@ -162,8 +161,55 @@ replStep_next state config xx
          -> do  liftIO  $ TL.putStrLn
                         $ BL.toLazyText
                         $ Source.buildExp Source.CtxTop xx'
+                HL.outputStr "\n"
 
                 replLoop $ state { stateMode = ModeStep config xx' }
+
+
+-------------------------------------------------------------------------------
+-- | Parse an expression and normalize it.
+replSteps_load :: RState -> String -> HL.InputT IO ()
+replSteps_load state str
+ = do   result  <- liftIO $ replParseExp state str
+        case result of
+         Nothing -> replLoop state
+
+         Just xx
+          -> let
+                decls   = Map.fromList
+                        $ [ (n, x) | DeclMac n x <- stateDecls state ]
+
+                prims   = Map.fromList
+                        $ [ (Prim.primEvalName p, p) | p <- Prim.primEvals ]
+
+                config  = Step.Config
+                        { Step.configUnderLambdas = True
+                        , Step.configHeadArgs     = True
+                        , Step.configDeclsMac     = decls
+                        , Step.configPrims        = prims }
+
+              in replSteps_next state config xx
+
+
+-- | Advance the evaluator stepper.
+replSteps_next
+        :: RState -> RConfig -> RExp
+        -> HL.InputT IO ()
+
+replSteps_next state config xx
+ = case Step.steps config xx of
+        Left msg
+         -> do  HL.outputStrLn
+                        $ Text.unpack
+                        $ Text.pack "error: " <> msg
+
+        Right xx'
+         -> do  liftIO  $ TL.putStrLn
+                        $ BL.toLazyText
+                        $ Source.buildExp Source.CtxTop xx'
+                HL.outputStr "\n"
+
+                replLoop $ state { stateMode = ModeNone }
 
 
 -------------------------------------------------------------------------------
