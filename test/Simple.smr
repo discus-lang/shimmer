@@ -2,8 +2,8 @@
 
 -- Identity function function.
 @id x   = x;
-+test   = %test-exp %simple-id
- (@id #nat-5) #nat-3;
+-- +test   = %test-exp %simple-id
+-- (@id #nat-5) #nat-3;
 
 
 -- Duplicate a value.
@@ -14,8 +14,8 @@
 
 -- Apply a higher order function twice.
 @twice f x = f (f x);
-+test   = %test-exp %simple-twice
- (@twice (#nat-add #nat'1) #nat'5) #nat'7;
+-- +test   = %test-exp %simple-twice
+-- (@twice (#nat-add #nat'1) #nat'5) #nat'7;
 
 
 @prop-id

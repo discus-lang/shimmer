@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module SMR.Source.Pretty where
 import SMR.Core.Exp.Base
+import SMR.Prim.Name
+import SMR.Prim.Op.Base
 import Data.Monoid
 import Data.Text                                (Text)
 import Data.Text.Lazy.Builder                   (Builder)
@@ -14,6 +16,10 @@ class Build a where
 
 instance Build Text where
  build tx = B.fromText tx
+
+instance Build Prim where
+ build pp = buildPrim pp
+
 
 -- | Context we're currently in when pretty printing.
 data Ctx
@@ -180,4 +186,12 @@ buildRef rr
         RSet n  -> "+" <> B.fromText n
         RSym s  -> "%" <> build s
         RPrm p  -> "#" <> build p
+
+
+-- Prim -----------------------------------------------------------------------
+-- | Yield a builder for a primitive.
+buildPrim :: Prim -> Builder
+buildPrim pp
+ = B.fromText $ pprPrim pp
+
 

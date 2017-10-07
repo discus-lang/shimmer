@@ -3,6 +3,9 @@ module Main where
 import SMR.Core.Exp.Base
 import SMR.Core.Exp.Train
 import SMR.Core.Exp.Push
+import qualified SMR.Prim.Op                    as Prim
+import qualified SMR.Prim.Op.Base               as Prim
+import qualified SMR.Prim.Name                  as Prim
 import qualified SMR.CLI.Config                 as Config
 import qualified SMR.CLI.Repl                   as Repl
 import qualified SMR.Source.Parser              as Source
@@ -14,6 +17,8 @@ import qualified System.IO                      as System
 import qualified Data.Text.Lazy.IO              as TL
 import qualified Data.Text.Lazy.Builder         as BL
 import qualified Data.Char                      as Char
+import qualified Data.Set                       as Set
+
 
 main :: IO ()
 main
@@ -42,7 +47,7 @@ runCheck path
         let config
                 = Source.Config
                 { Source.configReadSym  = Just
-                , Source.configReadPrm  = Just }
+                , Source.configReadPrm  = Prim.readPrim Prim.primOpTextNames }
 
         case Source.parseDecls config ts of
          Left err
@@ -65,7 +70,7 @@ runRepl path
         let config
                 = Source.Config
                 { Source.configReadSym  = Just
-                , Source.configReadPrm  = Just }
+                , Source.configReadPrm  = Prim.readPrim Prim.primOpTextNames }
 
         case Source.parseDecls config ts of
          Left err

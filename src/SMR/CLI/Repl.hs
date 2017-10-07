@@ -1,6 +1,9 @@
 module SMR.CLI.Repl where
 import SMR.Core.Exp
 import qualified SMR.Core.Step                  as Step
+import qualified SMR.Prim.Name                  as Prim
+import qualified SMR.Prim.Op                    as Prim
+import qualified SMR.Prim.Op.Base               as Prim
 import qualified SMR.Source.Parser              as Source
 import qualified SMR.Source.Lexer               as Source
 import qualified SMR.Source.Pretty              as Source
@@ -10,6 +13,7 @@ import qualified System.Console.Haskeline       as HL
 import qualified Data.Char                      as Char
 import qualified Data.List                      as List
 import qualified Data.Map                       as Map
+import qualified Data.Set                       as Set
 import qualified Data.Text                      as Text
 import Control.Monad.IO.Class
 import Data.Text                                (Text)
@@ -23,16 +27,20 @@ data Mode s p
         | ModeParse
         | ModePush (Exp s p)
         | ModeStep (Step.Config s p) (Exp s p)
-        deriving Show
+
 
 data State s p
         = State
         { stateMode     :: Mode s p
         , stateDecls    :: [Decl s p] }
 
+type RState     = State Text Prim.Prim
+type RConfig    = Step.Config Text Prim.Prim
+type RExp       = Exp Text Prim.Prim
+
 
 -------------------------------------------------------------------------------
-replStart :: State Text Text -> IO ()
+replStart :: RState -> IO ()
 replStart state
  = HL.runInputT HL.defaultSettings
  $ do   HL.outputStrLn "Shimmer, version 0.1. The Lambda Machine."
@@ -40,7 +48,7 @@ replStart state
 
 
 -- | Main repl loop dispatcher
-replLoop :: State Text Text  -> HL.InputT IO ()
+replLoop :: RState -> HL.InputT IO ()
 replLoop state
  = do   minput  <- HL.getInputLine "> "
         case minput of
@@ -72,7 +80,7 @@ replLoop state
 
 
 -- | Parse and print back an expression.
-replParse :: State Text Text -> String -> HL.InputT IO ()
+replParse :: RState -> String -> HL.InputT IO ()
 replParse state str
  = do   result  <- liftIO $ replParseExp state str
         case result of
@@ -89,7 +97,7 @@ replParse state str
 
 -------------------------------------------------------------------------------
 -- | Parse an expression and push down substitutions.
-replPush_load :: State Text Text -> String -> HL.InputT IO ()
+replPush_load :: RState -> String -> HL.InputT IO ()
 replPush_load state str
  = do   result  <- liftIO $ replParseExp state str
         case result of
@@ -98,7 +106,7 @@ replPush_load state str
 
 
 -- | Advance the train pusher.
-replPush_next :: State Text Text -> Exp Text Text -> HL.InputT IO ()
+replPush_next :: RState -> RExp -> HL.InputT IO ()
 replPush_next state xx
  = case pushDeep xx of
         Nothing -> replLoop $ state { stateMode = ModeNone }
@@ -112,7 +120,7 @@ replPush_next state xx
 
 -------------------------------------------------------------------------------
 -- | Parse an expression and single-step it.
-replStep_load :: State Text Text -> String -> HL.InputT IO ()
+replStep_load :: RState -> String -> HL.InputT IO ()
 replStep_load state str
  = do   result  <- liftIO $ replParseExp state str
         case result of
@@ -123,19 +131,21 @@ replStep_load state str
                 decls   = Map.fromList
                         $ [ (n, x) | DeclMac n x <- stateDecls state ]
 
+                prims   = Map.fromList
+                        $ [ (Prim.primEvalName p, p) | p <- Prim.primEvals ]
+
                 config  = Step.Config
                         { Step.configUnderLambdas = True
                         , Step.configHeadArgs     = True
-                        , Step.configDeclsMac     = decls }
+                        , Step.configDeclsMac     = decls
+                        , Step.configPrims        = prims }
 
              in replStep_next state config xx
 
 
 -- | Advance the single stepper.
 replStep_next
-        :: State Text Text
-        -> Step.Config Text Text
-        -> Exp Text Text
+        :: RState -> RConfig -> RExp
         -> HL.InputT IO ()
 
 replStep_next state config xx
@@ -157,7 +167,7 @@ replStep_next state config xx
 
 
 -------------------------------------------------------------------------------
-replParseExp :: State Text Text -> String -> IO (Maybe (Exp Text Text))
+replParseExp :: RState -> String -> IO (Maybe RExp)
 replParseExp state str
  = do   let (ts, loc, csRest)
                 = Source.lexTokens (Source.L 1 1) str
@@ -165,7 +175,7 @@ replParseExp state str
         let config
                 = Source.Config
                 { Source.configReadSym  = Just
-                , Source.configReadPrm  = Just }
+                , Source.configReadPrm  = Prim.readPrim Prim.primOpTextNames }
 
         case Source.parseExp config ts of
          Left err

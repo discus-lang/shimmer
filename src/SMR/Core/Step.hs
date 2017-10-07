@@ -1,6 +1,8 @@
 
 module SMR.Core.Step where
 import SMR.Core.Exp
+import SMR.Prim.Name
+import SMR.Prim.Op.Base
 import Data.Text                (Text)
 import Data.Map                 (Map)
 import Data.Maybe
@@ -17,9 +19,11 @@ data Config s p
           -- | Reduce arguments when head is not an abstraction.
         , configHeadArgs        :: Bool
 
+          -- | Primitive operator declarations.
+        , configPrims           :: Map p (PrimEval s p)
+
           -- | Macro declarations.
         , configDeclsMac        :: Map Name (Exp s p) }
-        deriving Show
 
 
 -- | Result of evaluation.
@@ -38,7 +42,7 @@ data Result
 --   a higher asymptotic complexity than it would with an evaluator that
 --   that manages the evaluation context properly.
 --
-step    :: (Eq p, Show p)
+step    :: (Ord p, Show p)
         => Config s p -> Exp s p
         -> Either Result (Exp s p)
 
@@ -85,6 +89,7 @@ step config xx
                 -- Functional expression is done.
                 Left ResultDone
                  -> case xF of
+                        XRef (RPrm primF)  -> stepAppPrm config primF xsArgs
                         XAbs nsParam xBody -> stepAppAbs config nsParam xBody xsArgs
                         XKey KSeq xBody    -> stepAppSeq xBody xsArgs
                         XKey KTag xBody    -> stepAppTag config xBody xsArgs
@@ -141,9 +146,23 @@ step config xx
 
 
 -------------------------------------------------------------------------------
+-- | Step an application of a primitive operators to its arguments.
+stepAppPrm
+        :: (Ord p, Show p)
+        => Config s p
+        -> p -> [Exp s p]
+        -> Either Result (Exp s p)
+
+stepAppPrm config prim xsArgs
+ = case Map.lookup prim (configPrims config) of
+        Nothing         -> Left ResultDone
+        Just primEval   -> stepPrim config primEval xsArgs
+
+
+-------------------------------------------------------------------------------
 -- | Step an application of an abstraction applied to its arguments.
 stepAppAbs
-        :: (Eq p, Show p)
+        :: (Ord p, Show p)
         => Config s p
         -> [Param] -> Exp s p -> [Exp s p]
         -> Either Result (Exp s p)
@@ -194,7 +213,7 @@ stepAppAbs config psParam xBody xsArgs
 -------------------------------------------------------------------------------
 -- | Step an application of the ##seq super prim.
 stepAppSeq
-        :: (Eq p, Show p)
+        :: (Ord p, Show p)
         => Exp s p -> [Exp s p]
         -> Either Result (Exp s p)
 
@@ -219,7 +238,7 @@ stepAppSeq xBody xsArgs
 -------------------------------------------------------------------------------
 -- | Step an application of the ##tag superprim.
 stepAppTag
-        :: (Eq p, Show p)
+        :: (Ord p, Show p)
         => Config s p
         -> Exp s p -> [Exp s p]
         -> Either Result (Exp s p)
@@ -231,10 +250,61 @@ stepAppTag config xBody xsArgs
 
 
 -------------------------------------------------------------------------------
+-- | Step an application of a primitive operator to some arguments.
+stepPrim
+        :: (Ord p, Show p)
+        => Config s p
+        -> PrimEval s p -> [Exp s p]
+        -> Either Result (Exp s p)
+stepPrim config pe xsArgs
+ | PrimEval prim desc csArg eval <- pe
+ = let
+        -- Evaluation of arguments is complete.
+        evalArgs [] [] xsArgsDone
+         = case eval (reverse xsArgsDone) of
+                Just xResult    -> Right xResult
+                Nothing         -> Left ResultDone
+
+        -- We have more args than the primitive will accept.
+        evalArgs [] xsArgsRemain xsArgsDone
+         = case eval (reverse xsArgsDone) of
+                Just xResult    -> Right $ XApp xResult (xsArgsRemain)
+                Nothing         -> Left ResultDone
+
+        -- Evaluate the next argument if needed.
+        evalArgs (cArg' : csArg') (xArg' : xsArg') xsArgsDone
+         -- Primitive does not demand a value fo rthis arg.
+         | PExp <- cArg'
+         = evalArgs csArg' xsArg' (xArg' : xsArgsDone)
+
+         -- Primtiive demands a value for this arg.
+         | otherwise
+         = case step (config { configUnderLambdas = False
+                             , configHeadArgs = False })
+                     xArg' of
+                Left err@(ResultError _)
+                 -> Left err
+
+                Left ResultDone
+                 -> evalArgs csArg' xsArg' (xArg' : xsArgsDone)
+
+                Right xArg''
+                 -> Right $ makeXApps (XRef (RPrm (primEvalName pe)))
+                          $ (reverse xsArgsDone) ++ (xArg'' : xsArg')
+
+        -- We have less args than the prim will accept,
+        -- so leave the application as it is.
+        evalArgs _ [] xsArgsDone
+         = Left ResultDone
+
+   in   evalArgs csArg xsArgs []
+
+
+-------------------------------------------------------------------------------
 -- | Step the first available expression in a list,
 --   reducing them all towards values.
 stepFirstVal
-        :: (Eq p, Show p)
+        :: (Ord p, Show p)
         => Config s p
         -> [Exp s p]
         -> Either Result [Exp s p]
@@ -245,7 +315,7 @@ stepFirstVal config xx
 
 -- | Step the first available expression in a list.
 stepFirst
-        :: (Eq p, Show p)
+        :: (Ord p, Show p)
         => Config s p
         -> [Exp s p] -> [Form]
         -> Either Result [Exp s p]
