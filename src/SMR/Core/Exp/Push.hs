@@ -25,9 +25,9 @@ pushDeep xx
         XRef _          -> Nothing
         XVar _ _        -> Nothing
 
-        XKey k1 xs2
-         | Just xs2'    <- pushDeepFirst xs2
-         -> Just $ XKey k1 xs2'
+        XKey k1 x2
+         | Just x2'     <- pushDeep x2
+         -> Just $ XKey k1 x2'
 
          | otherwise    -> Nothing
 
@@ -84,7 +84,7 @@ pushTrain cs1 x2
 
         -- Push train under key.
         XKey k21 x22
-         -> Just $ XKey k21 (map (trainApply cs1) x22)
+         -> Just $ XKey k21 (trainApply cs1 x22)
 
         -- Push train into both sides of an application.
         XApp x21 x22

@@ -44,7 +44,6 @@ buildDecl dd
 
 
 -- Exp ------------------------------------------------------------------------
-
 -- | Yield a builder for an expression.
 buildExp
         :: (Build s, Build p)
@@ -56,11 +55,8 @@ buildExp ctx xx
         XVar n 0  -> B.fromText n
         XVar n d  -> B.fromText n <> "^" <> B.fromString (show d)
 
-        XKey k1 xs2
-         -> let ppExp   = buildKey k1 <> " " <> go xs2
-                go []             = ""
-                go (x : [])       = buildExp CtxArg x
-                go (x1 : x2 : xs) = buildExp CtxArg x1 <> " " <> go (x2 : xs)
+        XKey k1 x2
+         -> let ppExp   = buildKey k1 <> " " <> buildExp CtxArg x2
             in  case ctx of
                  CtxArg -> parens ppExp
                  _      -> ppExp

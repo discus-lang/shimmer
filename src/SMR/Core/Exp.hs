@@ -3,10 +3,10 @@ module SMR.Core.Exp
         ( -- * Abstract Syntax
           Decl  (..)
         , Exp   (..)
-        , Train
         , Param (..)
         , Form  (..)
         , Key   (..)
+        , Train
         , Car   (..)
         , Snv   (..), SnvBind
         , Ups   (..), UpsBump
@@ -21,9 +21,12 @@ module SMR.Core.Exp
         , trainCons
         , trainAppend
         , trainApply
+        , snvApply
+        , snvOfNamesArgs
+
+        -- * Pushing
         , pushHead
         , pushDeep)
-
 where
 import SMR.Core.Exp.Base
 import SMR.Core.Exp.Compounds

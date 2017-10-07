@@ -131,10 +131,8 @@ pExpApp c
                  else if nKey' == Text.pack "tag" then return KTag
                  else P.fail
 
-        xsArgs  <- P.some (pExpAtom c)
-        case xsArgs of
-         []  -> P.fail
-         _   -> return $ XKey nKey xsArgs
+        xArg    <- pExpAtom c
+        return $ XKey nKey xArg
 
         -- Application of some other expression.
  , do   xFun    <- pExpAtom c
