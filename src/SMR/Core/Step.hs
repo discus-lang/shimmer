@@ -2,8 +2,9 @@
 module SMR.Core.Step where
 import SMR.Core.Exp
 import Data.Text                (Text)
-import qualified Data.Map       as Map
 import Data.Map                 (Map)
+import Data.Maybe
+import qualified Data.Map       as Map
 
 
 --------------------------------------------------------------------------------
@@ -84,8 +85,9 @@ step config xx
                 -- Functional expression is done.
                 Left ResultDone
                  -> case xF of
-                        XAbs nsParam xBody
-                          -> stepAppAbs config nsParam xBody xsArgs
+                        XAbs nsParam xBody -> stepAppAbs config nsParam xBody xsArgs
+                        XKey KSeq xBody    -> stepAppSeq xBody xsArgs
+                        XKey KTag xBody    -> stepAppTag config xBody xsArgs
 
                         -- Functional expression is inactive, but optionally
                         -- continue reducing arguments to eliminate all of
@@ -187,6 +189,45 @@ stepAppAbs config psParam xBody xsArgs
                 snv     = snvOfNamesArgs nsParam xsArgs_sat
             in  Right $ XApp (snvApply False snv xBody)
                              xsArgs_remain
+
+
+-------------------------------------------------------------------------------
+-- | Step an application of the ##seq super prim.
+stepAppSeq
+        :: (Eq p, Show p)
+        => Exp s p -> [Exp s p]
+        -> Either Result (Exp s p)
+
+stepAppSeq xBody xsArgs
+ -- Application of a seq to an abstraction.
+ -- As we can see the abstraction, build the substitution directly without
+ -- going through an intermediate application.
+ | xArg1 : xsArgs' <- xsArgs
+ , XAbs ps11  x12  <- fromMaybe xArg1 (pushHead xArg1)
+ , p1    : ps11'   <- ps11
+ = let  n1      = nameOfParam p1
+        snv     = snvOfNamesArgs [n1] [xBody]
+        car     = CSim snv
+        cars    = [car]
+   in   Right $ makeXApps (trainApply cars $ XAbs ps11' x12) xsArgs'
+
+ -- Application of a seq to something that isn't yet an abstraction.
+ | otherwise
+ =      Right $ makeXApps (XKey KSeq xBody) xsArgs
+
+
+-------------------------------------------------------------------------------
+-- | Step an application of the ##tag superprim.
+stepAppTag
+        :: (Eq p, Show p)
+        => Config s p
+        -> Exp s p -> [Exp s p]
+        -> Either Result (Exp s p)
+
+stepAppTag config xBody xsArgs
+ = case stepFirstVal config xsArgs of
+        Left  res       -> Left res
+        Right xsArgs'   -> Right $ makeXApps (XKey KTag xBody) xsArgs'
 
 
 -------------------------------------------------------------------------------
