@@ -42,5 +42,14 @@ helpGrammar
  , "  Param ::= Name                           (Call-by-value parameter)"
  , "         |  '!' Name                       (Explicitly call-by-value parameter)"
  , "         |  '~' Name                       (Explicitly call-by-name  parameter)"
+ , ""
+ , "  Train ::= Car+                           (Substitution train)"
+ , ""
+ , "  Car   ::= '['  Bind,* ']'                (Simultaneous substitution)"
+ , "         |  '[[' Bind,* ']]'               (Recursive substitution)"
+ , "         |  '{'  Bump,* '}'                (Lifting specifier)"
+ , ""
+ , "  Bind  ::= Name ('^' Nat)? '=' Exp        (Substitution binding)"
+ , "  Bump  ::= Name ('^' Nat)? ':' Nat        (Lifting bump)"
  ]
 

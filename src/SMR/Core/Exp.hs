@@ -18,14 +18,14 @@ module SMR.Core.Exp
         , makeXApps, takeXApps
         , nameOfParam, formOfParam
 
-         -- * Trains
+         -- * Substitution Trains
         , trainCons
         , trainAppend
         , trainApply
         , snvApply
         , snvOfNamesArgs
 
-        -- * Pushing
+        -- * Substitution Pushing
         , pushHead
         , pushDeep)
 where

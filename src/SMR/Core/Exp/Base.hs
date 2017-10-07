@@ -19,14 +19,14 @@ data Exp s p
         -- | Reference to an external thing.
         = XRef  (Ref s p)
 
-        -- | Variable name with a binding depth.
-        | XVar  Name Int
-
         -- | Keyed expressions.
         | XKey  Key       (Exp s p)
 
         -- | Application of a function expression to an argument.
         | XApp  (Exp s p) [Exp s p]
+
+        -- | Variable name with a binding depth.
+        | XVar  Name Int
 
         -- | Abstraction with a list of parameters and a body expression.
         | XAbs  [Param] (Exp s p)

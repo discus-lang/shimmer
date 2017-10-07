@@ -161,6 +161,8 @@ replDecls :: RState -> Set Name -> HL.InputT IO ()
 replDecls state names
  = do   liftIO  $ mapM_ (printDecl names)
                 $ stateDecls state
+        HL.outputStr "\n"
+
         replLoop state
 
 
