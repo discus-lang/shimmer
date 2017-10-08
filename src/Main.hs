@@ -3,6 +3,7 @@ module Main where
 import SMR.Core.Exp.Base
 import SMR.Core.Exp.Train
 import SMR.Core.Exp.Push
+import qualified SMR.Core.World                 as World
 import qualified SMR.Prim.Op                    as Prim
 import qualified SMR.Prim.Op.Base               as Prim
 import qualified SMR.Prim.Name                  as Prim
@@ -63,10 +64,12 @@ runCheck path
 
 runRepl :: Maybe FilePath -> IO ()
 runRepl mPath
- = Repl.replStart
+ = do   world <- World.worldInit ()
+        Repl.replStart
          $ Repl.State
          { Repl.stateMode   = Repl.ModeNone
          , Repl.stateDecls  = []
-         , Repl.stateFiles  = Maybe.maybeToList mPath }
+         , Repl.stateFiles  = Maybe.maybeToList mPath
+         , Repl.stateWorld  = world }
 
 

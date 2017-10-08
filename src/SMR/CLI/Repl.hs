@@ -3,6 +3,7 @@ module SMR.CLI.Repl where
 import SMR.Core.Exp
 import qualified SMR.CLI.Help                   as Help
 import qualified SMR.Core.Step                  as Step
+import qualified SMR.Core.World                 as World
 import qualified SMR.Prim.Name                  as Prim
 import qualified SMR.Prim.Op                    as Prim
 import qualified SMR.Prim.Op.Base               as Prim
@@ -32,7 +33,7 @@ data Mode s p
         | ModeStep (Step.Config s p) (Exp s p)
 
 
-data State s p
+data State s p w
         = State
         { -- | Current interpreter mode.
           stateMode     :: Mode s p
@@ -41,10 +42,15 @@ data State s p
         , stateDecls    :: [Decl s p]
 
           -- | Working source files.
-        , stateFiles    :: [FilePath] }
+        , stateFiles    :: [FilePath]
 
-type RState     = State Text Prim.Prim
+          -- | Execution world.
+        , stateWorld    :: World.World w }
+
+
+type RState     = State Text Prim.Prim ()
 type RConfig    = Step.Config Text Prim.Prim
+type RWorld     = World.World  ()
 type RDecl      = Decl  Text Prim.Prim
 type RExp       = Exp   Text Prim.Prim
 
@@ -277,22 +283,23 @@ replStep_next
         -> HL.InputT IO ()
 
 replStep_next state config xx
- = case Step.step config xx of
-        Left Step.ResultDone
-         -> replLoop $ state { stateMode = ModeNone }
+ = do   erx     <- liftIO $ Step.step config (stateWorld state) xx
+        case erx of
+         Left Step.ResultDone
+          -> replLoop $ state { stateMode = ModeNone }
 
-        Left (Step.ResultError msg)
-         -> do  HL.outputStrLn
-                        $ Text.unpack
-                        $ Text.pack "error: " <> msg
+         Left (Step.ResultError msg)
+          -> do  HL.outputStrLn
+                         $ Text.unpack
+                         $ Text.pack "error: " <> msg
 
-        Right xx'
-         -> do  liftIO  $ TL.putStrLn
-                        $ BL.toLazyText
-                        $ Source.buildExp Source.CtxTop xx'
-                HL.outputStr "\n"
+         Right xx'
+          -> do  liftIO  $ TL.putStrLn
+                         $ BL.toLazyText
+                         $ Source.buildExp Source.CtxTop xx'
+                 HL.outputStr "\n"
 
-                replLoop $ state { stateMode = ModeStep config xx' }
+                 replLoop $ state { stateMode = ModeStep config xx' }
 
 
 -------------------------------------------------------------------------------
@@ -307,19 +314,20 @@ replSteps_next
         -> HL.InputT IO ()
 
 replSteps_next state config xx
- = case Step.steps config xx of
-        Left msg
-         -> do  HL.outputStrLn
-                        $ Text.unpack
-                        $ Text.pack "error: " <> msg
+ = do   erx     <- liftIO $ Step.steps config (stateWorld state) xx
+        case erx of
+         Left msg
+          -> do  HL.outputStrLn
+                         $ Text.unpack
+                         $ Text.pack "error: " <> msg
 
-        Right xx'
-         -> do  liftIO  $ TL.putStrLn
-                        $ BL.toLazyText
-                        $ Source.buildExp Source.CtxTop xx'
-                HL.outputStr "\n"
+         Right xx'
+          -> do  liftIO  $ TL.putStrLn
+                         $ BL.toLazyText
+                         $ Source.buildExp Source.CtxTop xx'
+                 HL.outputStr "\n"
 
-                replLoop $ state { stateMode = ModeNone }
+                 replLoop $ state { stateMode = ModeNone }
 
 
 -------------------------------------------------------------------------------
@@ -336,22 +344,24 @@ replTrace_next
 
 replTrace_next state config !xx0
  = loop xx0
- where loop !xx
-         = case Step.step config xx of
-            Left (Step.ResultError msg)
-             -> do  HL.outputStrLn
-                        $ Text.unpack
-                        $ Text.pack "error: " <> msg
+ where
+  loop !xx
+   = do erx <- liftIO $ Step.step config (stateWorld state) xx
+        case erx of
+         Left (Step.ResultError msg)
+          -> do  HL.outputStrLn
+                  $ Text.unpack
+                  $ Text.pack "error: " <> msg
 
-            Left Step.ResultDone
-             -> replLoop $ state { stateMode = ModeNone }
+         Left Step.ResultDone
+          -> replLoop $ state { stateMode = ModeNone }
 
-            Right xx'
-             -> do  liftIO  $ TL.putStrLn
-                            $ BL.toLazyText
-                            $ Source.buildExp Source.CtxTop xx'
+         Right xx'
+          -> do  liftIO  $ TL.putStrLn
+                         $ BL.toLazyText
+                         $ Source.buildExp Source.CtxTop xx'
 
-                    loop xx'
+                 loop xx'
 
 -------------------------------------------------------------------------------
 replLoadExp

@@ -6,6 +6,7 @@ module SMR.Core.Step
         , step)
 where
 import SMR.Core.Exp
+import SMR.Core.World
 import SMR.Prim.Name
 import SMR.Prim.Op.Base
 import Data.Text                (Text)
@@ -41,13 +42,16 @@ data Result
 -------------------------------------------------------------------------------
 -- | Multi-step reduction to normal form.
 steps   :: (Ord p, Show p)
-        => Config s p -> Exp s p
-        -> Either Text (Exp s p)
-steps config xx
- = case step config xx of
-        Left ResultDone         -> Right xx
-        Left (ResultError err)  -> Left err
-        Right xx'               -> steps config xx'
+        => Config s p
+        -> World w -> Exp s p
+        -> IO (Either Text (Exp s p))
+
+steps config world xx
+ = do   erx <- step config world xx
+        case erx of
+         Left ResultDone         -> return $ Right xx
+         Left (ResultError err)  -> return $ Left err
+         Right xx'               -> steps config world xx'
 
 
 -------------------------------------------------------------------------------
@@ -60,9 +64,11 @@ steps config xx
 --   that manages the evaluation context properly.
 --
 step    :: (Ord p, Show p)
-        => Config s p -> Exp s p
-        -> Either Result (Exp s p)
-step config xx
+        => Config s p
+        -> World w -> Exp s p
+        -> IO (Either Result (Exp s p))
+
+step config world xx
  = case xx of
         -- Reference
         XRef ref
@@ -70,98 +76,109 @@ step config xx
                 -- Expand macro declarations.
                 RMac n
                   -> case Map.lookup n (configDeclsMac config) of
-                        Nothing -> Left ResultDone
-                        Just x  -> Right x
+                        Nothing -> return $ Left ResultDone
+                        Just x  -> return $ Right x
 
                 -- Leave other references as-is.
-                _ -> Left ResultDone
+                _ -> return $ Left ResultDone
 
         -- Plain variable, we're done.
         XVar{}
-         -> Left ResultDone
+         -> return $ Left ResultDone
 
         -- Abstraction.
         XAbs ns1 x2
          -- Reduce the body of the abstraction if requested.
          |  configUnderLambdas config
-         ,  Right x2'    <- step config x2
-         -> Right $ XAbs ns1 x2'
+         -> do  er2'     <- step config world x2
+                case er2' of
+                 Left  r2  -> return $ Left r2
+                 Right x2' -> return $ Right $ XAbs ns1 x2'
 
          -- Otherwise treat abstractions as values.
          |  otherwise
-         -> Left ResultDone
+         -> return $ Left ResultDone
 
         -- Application.
         XApp xF []
-         -> Right xF
+         -> return $ Right xF
 
         XApp{}
          -- Unzip the application and try to step the functional expression first.
          |  Just (xF, xsArgs)    <- takeXApps xx
-         -> case step (config { configUnderLambdas = False }) xF of
-                -- Functional expression makes progress.
-                Right xF' -> Right $ makeXApps xF' xsArgs
+         -> do  erx <- step (config { configUnderLambdas = False })
+                            world xF
+                case erx of
+                 -- Functional expression makes progress.
+                 Right xF'
+                  -> return $ Right $ makeXApps xF' xsArgs
 
-                -- Evaluation of functional expression failed.
-                Left err@(ResultError _) -> Left err
+                 -- Evaluation of functional expression failed.
+                 Left err@(ResultError _)
+                  -> return $ Left err
 
-                -- Functional expression is done.
-                Left ResultDone
-                 -> case xF of
-                     XRef (RPrm primF)  -> stepAppPrm config primF xsArgs
-                     XAbs nsParam xBody -> stepAppAbs config nsParam xBody xsArgs
-                     XKey KSeq xBody    -> stepAppSeq xBody xsArgs
-                     XKey KTag xBody    -> stepAppTag config xBody xsArgs
+                 -- Functional expression is done.
+                 Left ResultDone
+                  -> case xF of
+                      XRef (RPrm primF)  -> stepAppPrm config world primF xsArgs
+                      XAbs nsParam xBody -> stepAppAbs config world nsParam xBody xsArgs
+                      XKey KSeq xBody    -> stepAppSeq xBody xsArgs
+                      XKey KTag xBody    -> stepAppTag config world xBody xsArgs
 
-                     -- Functional expression is inactive, but optionally
-                     -- continue reducing arguments to eliminate all of
-                     -- the redexes in the expression.
-                     _ |  configHeadArgs config
-                       -> case stepFirstVal config xsArgs of
-                           Right xsArgs' -> Right $ makeXApps xF xsArgs'
-                           Left res      -> Left res
+                      -- Functional expression is inactive, but optionally
+                      -- continue reducing arguments to eliminate all of
+                      -- the redexes in the expression.
+                      _ |  configHeadArgs config
+                        -> do   erxArgs <- stepFirstVal config world xsArgs
+                                case erxArgs of
+                                 Right xsArgs' -> return $ Right $ makeXApps xF xsArgs'
+                                 Left res      -> return $ Left res
 
-                       |  otherwise
-                       -> Left ResultDone
+                        |  otherwise
+                        -> return $ Left ResultDone
 
         -- Substitution trains.
         XSub{}
          -> case pushHead xx of
-                Nothing  -> Left ResultDone
-                Just xx' -> Right xx'
+                Nothing  -> return $ Left ResultDone
+                Just xx' -> return $ Right xx'
 
         -- Boxed expressions are already normal forms.
         XKey KBox _
-         -> Left ResultDone
+         -> return $ Left ResultDone
 
         -- Run a boxed expression.
         XKey KRun x1
-         -> case step (config { configUnderLambdas = False
-                              , configHeadArgs     = False }) x1 of
-                -- Body makes progress.
-                Right x1'
-                 -> Right (XKey KRun x1')
+         -> do  erx <- step (config { configUnderLambdas = False
+                                    , configHeadArgs     = False })
+                            world x1
 
-                -- Body expression evaluation failed.
-                Left err@(ResultError _)
-                 -> Left err
+                case erx of
+                 -- Body makes progress.
+                 Right x1'
+                  -> return $ Right (XKey KRun x1')
 
-                -- If the body expression is a box then unwrap it,
-                -- otherwise just return the value as-is.
-                Left ResultDone
-                 -> case x1 of
-                        XKey KBox x11   -> Right x11
-                        _               -> Right x1
+                 -- Body expression evaluation failed.
+                 Left err@(ResultError _)
+                  -> return $ Left err
+
+                 -- If the body expression is a box then unwrap it,
+                 -- otherwise just return the value as-is.
+                 Left ResultDone
+                  -> case x1 of
+                         XKey KBox x11   -> return $ Right x11
+                         _               -> return $ Right x1
 
         -- Step the body of a seq expression.
         XKey KSeq x
-         -> case step config x of
-                Right x'  -> Right $ XKey KSeq x'
-                Left err  -> Left err
+         -> do  erx <- step config world x
+                case erx of
+                 Right x'  -> return $ Right $ XKey KSeq x'
+                 Left err  -> return $ Left err
 
         -- Tagged expressions are always done.
         XKey KTag x
-         -> Left ResultDone
+         -> return $ Left ResultDone
 
 
 -------------------------------------------------------------------------------
@@ -169,13 +186,13 @@ step config xx
 stepAppPrm
         :: (Ord p, Show p)
         => Config s p
-        -> p -> [Exp s p]
-        -> Either Result (Exp s p)
+        -> World w -> p -> [Exp s p]
+        -> IO (Either Result (Exp s p))
 
-stepAppPrm config prim xsArgs
+stepAppPrm config world prim xsArgs
  = case Map.lookup prim (configPrims config) of
-        Nothing         -> Left ResultDone
-        Just primEval   -> stepPrim config primEval xsArgs
+        Nothing         -> return $ Left ResultDone
+        Just primEval   -> stepPrim config world primEval xsArgs
 
 
 -------------------------------------------------------------------------------
@@ -183,52 +200,57 @@ stepAppPrm config prim xsArgs
 stepAppAbs
         :: (Ord p, Show p)
         => Config s p
-        -> [Param] -> Exp s p -> [Exp s p]
-        -> Either Result (Exp s p)
+        -> World w -> [Param] -> Exp s p -> [Exp s p]
+        -> IO (Either Result (Exp s p))
 
-stepAppAbs config psParam xBody xsArgs
- = let
-        arity           = length psParam
-        args            = length xsArgs
-        xsArgs_sat      = take arity xsArgs
-        xsArgs_remain   = drop arity xsArgs
-        fsParam_sat     = map formOfParam psParam
+stepAppAbs config world psParam xBody xsArgs
+ = do
+        let arity         = length psParam
+        let args          = length xsArgs
+        let xsArgs_sat    = take arity xsArgs
+        let xsArgs_remain = drop arity xsArgs
+        let fsParam_sat   = map formOfParam psParam
 
-   in case stepFirst config xsArgs_sat fsParam_sat of
-        -- One of the args makes progress.
-        Right xsArgs_sat'
-         -> let xFun    = XAbs psParam xBody
-            in  Right $ makeXApps (makeXApps xFun xsArgs_sat') xsArgs_remain
+        erxs   <- stepFirst config world xsArgs_sat fsParam_sat
+        case erxs of
+         -- One of the args makes progress.
+         Right xsArgs_sat'
+          -> do let xFun    = XAbs psParam xBody
+                return $ Right
+                 $ makeXApps (makeXApps xFun xsArgs_sat') xsArgs_remain
 
-        -- Stepping one of the arguments failed.
-        Left err@(ResultError _)
-         -> Left err
+         -- Stepping one of the arguments failed.
+         Left err@(ResultError _)
+          ->    return $ Left err
 
-        -- The arguments are all done.
-        Left ResultDone
-         -- Saturated application
-         | args == arity
-         -> let nsParam = map nameOfParam psParam
-                snv     = snvOfNamesArgs nsParam xsArgs
-            in  Right $ snvApply False snv xBody
+         -- The arguments are all done.
+         Left ResultDone
+          -- Saturated application
+          | args == arity
+          -> do let nsParam = map nameOfParam psParam
+                let snv     = snvOfNamesArgs nsParam xsArgs
+                return $ Right
+                 $ snvApply False snv xBody
 
-         -- Under application.
-         | args < arity
-         -> let psParam_sat    = take args psParam
-                nsParam_sat    = map nameOfParam psParam_sat
-                psParam_remain = drop args psParam
-                snv     = snvOfNamesArgs nsParam_sat xsArgs_sat
-            in  Right $ makeXApps
-                            (snvApply False snv $ XAbs psParam_remain xBody)
-                            xsArgs_remain
+          -- Under application.
+          | args < arity
+          -> do let psParam_sat    = take args psParam
+                let nsParam_sat    = map nameOfParam psParam_sat
+                let psParam_remain = drop args psParam
+                let snv     = snvOfNamesArgs nsParam_sat xsArgs_sat
+                return $ Right
+                 $ makeXApps
+                        (snvApply False snv $ XAbs psParam_remain xBody)
+                        xsArgs_remain
 
-         -- Over application.
-         | otherwise
-         -> let nsParam = map nameOfParam psParam
-                snv     = snvOfNamesArgs nsParam xsArgs_sat
-            in  Right $ makeXApps
-                            (snvApply False snv xBody)
-                            xsArgs_remain
+          -- Over application.
+          | otherwise
+          -> do let nsParam = map nameOfParam psParam
+                let snv     = snvOfNamesArgs nsParam xsArgs_sat
+                return $ Right
+                 $ makeXApps
+                        (snvApply False snv xBody)
+                        xsArgs_remain
 
 
 -------------------------------------------------------------------------------
@@ -236,7 +258,7 @@ stepAppAbs config psParam xBody xsArgs
 stepAppSeq
         :: (Ord p, Show p)
         => Exp s p -> [Exp s p]
-        -> Either Result (Exp s p)
+        -> IO (Either Result (Exp s p))
 
 stepAppSeq xBody xsArgs
  -- Application of a seq to an abstraction.
@@ -245,15 +267,15 @@ stepAppSeq xBody xsArgs
  | xArg1 : xsArgs' <- xsArgs
  , XAbs ps11  x12  <- fromMaybe xArg1 (pushHead xArg1)
  , p1    : ps11'   <- ps11
- = let  n1      = nameOfParam p1
-        snv     = snvOfNamesArgs [n1] [xBody]
-        car     = CSim snv
-        cars    = [car]
-   in   Right $ makeXApps (trainApply cars $ XAbs ps11' x12) xsArgs'
+ = do   let  n1     = nameOfParam p1
+        let snv     = snvOfNamesArgs [n1] [xBody]
+        let car     = CSim snv
+        let cars    = [car]
+        return $ Right $ makeXApps (trainApply cars $ XAbs ps11' x12) xsArgs'
 
  -- Application of a seq to something that isn't yet an abstraction.
  | otherwise
- =      Right $ makeXApps (XKey KSeq xBody) xsArgs
+ =      return $ Right $ makeXApps (XKey KSeq xBody) xsArgs
 
 
 -------------------------------------------------------------------------------
@@ -261,13 +283,14 @@ stepAppSeq xBody xsArgs
 stepAppTag
         :: (Ord p, Show p)
         => Config s p
-        -> Exp s p -> [Exp s p]
-        -> Either Result (Exp s p)
+        -> World w -> Exp s p -> [Exp s p]
+        -> IO (Either Result (Exp s p))
 
-stepAppTag config xBody xsArgs
- = case stepFirstVal config xsArgs of
-        Left  res       -> Left res
-        Right xsArgs'   -> Right $ makeXApps (XKey KTag xBody) xsArgs'
+stepAppTag config world xBody xsArgs
+ = do   erxs <- stepFirstVal config world xsArgs
+        case erxs of
+         Left  res     -> return $ Left res
+         Right xsArgs' -> return $ Right $ makeXApps (XKey KTag xBody) xsArgs'
 
 
 -------------------------------------------------------------------------------
@@ -275,22 +298,23 @@ stepAppTag config xBody xsArgs
 stepPrim
         :: (Ord p, Show p)
         => Config s p
-        -> PrimEval s p -> [Exp s p]
-        -> Either Result (Exp s p)
-stepPrim config pe xsArgs
+        -> World w -> PrimEval s p -> [Exp s p]
+        -> IO (Either Result (Exp s p))
+
+stepPrim config world pe xsArgs
  | PrimEval prim desc csArg eval <- pe
  = let
         -- Evaluation of arguments is complete.
         evalArgs [] [] xsArgsDone
          = case eval (reverse xsArgsDone) of
-                Just xResult    -> Right xResult
-                Nothing         -> Left ResultDone
+                Just xResult    -> return $ Right xResult
+                Nothing         -> return $ Left ResultDone
 
         -- We have more args than the primitive will accept.
         evalArgs [] xsArgsRemain xsArgsDone
          = case eval (reverse xsArgsDone) of
-                Just xResult    -> Right $ makeXApps xResult xsArgsRemain
-                Nothing         -> Left ResultDone
+                Just xResult    -> return $ Right $ makeXApps xResult xsArgsRemain
+                Nothing         -> return $ Left ResultDone
 
         -- Evaluate the next argument if needed.
         evalArgs (cArg' : csArg') (xArg' : xsArg') xsArgsDone
@@ -300,23 +324,25 @@ stepPrim config pe xsArgs
 
          -- Primtiive demands a value for this arg.
          | otherwise
-         = case step (config { configUnderLambdas = False
-                             , configHeadArgs = False })
-                     xArg' of
-                Left err@(ResultError _)
-                 -> Left err
+         = do   erxArg' <-  step (config { configUnderLambdas = False
+                                         , configHeadArgs = False })
+                                 world xArg'
+                case erxArg' of
+                 Left err@(ResultError _)
+                  -> return $ Left err
 
-                Left ResultDone
-                 -> evalArgs csArg' xsArg' (xArg' : xsArgsDone)
+                 Left ResultDone
+                  -> evalArgs csArg' xsArg' (xArg' : xsArgsDone)
 
-                Right xArg''
-                 -> Right $ makeXApps (XRef (RPrm (primEvalName pe)))
-                          $ (reverse xsArgsDone) ++ (xArg'' : xsArg')
+                 Right xArg''
+                  -> return $ Right
+                        $ makeXApps (XRef (RPrm (primEvalName pe)))
+                         $ (reverse xsArgsDone) ++ (xArg'' : xsArg')
 
         -- We have less args than the prim will accept,
         -- so leave the application as it is.
         evalArgs _ [] xsArgsDone
-         = Left ResultDone
+         = return $ Left ResultDone
 
    in   evalArgs csArg xsArgs []
 
@@ -327,41 +353,47 @@ stepPrim config pe xsArgs
 stepFirstVal
         :: (Ord p, Show p)
         => Config s p
-        -> [Exp s p]
-        -> Either Result [Exp s p]
+        -> World w -> [Exp s p]
+        -> IO (Either Result [Exp s p])
 
-stepFirstVal config xx
- = stepFirst config xx (replicate (length xx) PVal)
+stepFirstVal config world xx
+ = stepFirst config world xx (replicate (length xx) PVal)
 
 
 -- | Step the first available expression in a list.
 stepFirst
         :: (Ord p, Show p)
         => Config s p
-        -> [Exp s p] -> [Form]
-        -> Either Result [Exp s p]
+        -> World w -> [Exp s p] -> [Form]
+        -> IO (Either Result [Exp s p])
 
-stepFirst config xx ff
+stepFirst config world xx ff
  = case (xx, ff) of
-        ([], _)         -> Left ResultDone
-        (_,  [])        -> Left ResultDone
+        ([], _)
+         -> return $ Left ResultDone
+
+        (_,  [])
+         -> return $ Left ResultDone
 
         (x1 : xs2, f1 : fs2)
          | PExp <- f1
-         -> case stepFirst config xs2 fs2 of
-                Left r     -> Left r
-                Right xs2' -> Right $ x1 : xs2'
+         -> do  erx <- stepFirst config world xs2 fs2
+                case erx of
+                 Left r     -> return $ Left r
+                 Right xs2' -> return $ Right $ x1 : xs2'
 
          | otherwise
-         -> case step config x1 of
-                Left err@(ResultError{})
-                 -> Left err
+         -> do  erx1 <- step config world x1
+                case erx1 of
+                 Left err@(ResultError{})
+                  -> return $ Left err
 
-                Left ResultDone
-                 -> case stepFirst config xs2 fs2 of
-                        Left r     -> Left r
-                        Right xs2' -> Right $ x1 : xs2'
+                 Left ResultDone
+                  -> do erxs2 <- stepFirst config world xs2 fs2
+                        case erxs2 of
+                         Left  r    -> return $ Left r
+                         Right xs2' -> return $ Right $ x1 : xs2'
 
-                Right x1'
-                 -> Right $ x1' : xs2
+                 Right x1'
+                  -> return $ Right $ x1' : xs2
 
