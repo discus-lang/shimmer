@@ -25,7 +25,7 @@ Exp   ::=  Ref                            (External reference)
        |   Train      '.' Exp             (Substitution train)
 ```
 
-See the ``Grammar.md`` file under ``./docs`` for more information.
+See the ``Grammar.md`` file under ``./doc`` for more information.
 
 Explicit substitutions are used when writing program transformations to avoid the runtime overhead of naive substitution. Bumped variables are used to avoid name capture, for example in the expression ``\x. \x. \x. x x^2`` the variable occurrence ``x`` refers to the inner most parameter, while ``x^2`` refers to  the outermost one.
 
@@ -41,9 +41,9 @@ Here is a simple program, to compute the factorial of a number using an accumula
  = @fac-acc-loop #nat'1 x;
 
 @fac-acc-loop acc x
- = #if  (#nat-eq x #nat'0)
-        acc
-        (@fac-acc-loop (#nat-mul x acc) (#nat-sub x #nat'1));
+ = #if (#nat-eq x #nat'0)
+       acc
+       (@fac-acc-loop (#nat-mul x acc) (#nat-sub x #nat'1));
 ```
 
 Names starting with ``@`` refer to top-level macros that are expanded during evaluation as needed. Names starting with ``#`` refer to primitive values and operators. Once we add the above declarations to a file ``Factoral.smr`` we can used the Shimmer REPL to evaluate them, including generating a trace of single step evaluation.
