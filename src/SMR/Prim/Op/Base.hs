@@ -10,6 +10,7 @@ data Prim
         = PrimOp        Text
         | PrimLitBool   Bool
         | PrimLitNat    Integer
+        | PrimTagList
         deriving (Eq, Ord, Show)
 
 

@@ -19,6 +19,8 @@ pprPrim pp
 
         PrimLitNat n       -> Text.pack $ "nat'" ++ show n
 
+        PrimTagList        -> "list"
+
 
 -- | Parse a primitive name, without the leading '#'.
 readPrim :: Set Text -> Text -> Maybe Prim
@@ -36,6 +38,9 @@ readPrim ps tx
  -- Other primtiives.
  | Set.member tx ps
  = Just $ PrimOp tx
+
+ | tx == "list"
+ = Just $ PrimTagList
 
  -- Unrecognised.
  | otherwise

@@ -53,9 +53,9 @@ primOpIf
         [PVal, PExp, PExp] fn'
  where
         fn' as0
-         | Just (b1, as1)       <- takeArgBool as0
-         , Just (x1, as2)       <- takeArgExp  as1
-         , Just (x2, [])        <- takeArgExp  as2
+         | Just (b1, as1) <- takeArgBool as0
+         , Just (x1, as2) <- takeArgExp  as1
+         , Just (x2, [])  <- takeArgExp  as2
          = Just $ if b1 then x1 else x2
         fn' _ = Nothing
 
