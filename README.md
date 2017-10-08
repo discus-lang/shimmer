@@ -1,9 +1,13 @@
 
 # Shimmer
 
-The Lambda Machine
+The Reflective Lambda Machine
 
-Shimmer is a minimal Scheme-like language intended to be used as an intermediate representation and compiler target for other languages. You can also write programs in it directly, but only if you like parenthesis.
+Shimmer is a minimal Scheme-like language intended as an intermediate representation and compiler target for higher level languages. You can also write programs in it directly, but only if you like parenthesis.
+
+The Shimmer base language is untyped. In typical use the type annotations for object languages are encoded using meta-level constructs and higher order abstract syntax (HOAS).
+
+Shimmer provides support for nominal reasoning, so the lambda abstractions used for HOAS representations can be opened and closed directly. Shimmer also provides explicit substitutions and bumped variables, which means that one can write transformations over object-level abstract syntax with binding without needing to manually handle name capture.
 
 
 ## Grammar
@@ -23,11 +27,7 @@ Exp   ::=  Ref                            (External reference)
 
 See the ``Grammar.md`` file under ``./docs`` for more information.
 
-Shimmer is particuarly well suited as the intermediate representation for other functional languages due to the minimal expression grammar, as well as inclusion of explicit substitutions with bumped variables, as well as nominal reasoning.
-
 Explicit substitutions are used when writing program transformations to avoid the runtime overhead of naive substitution. Bumped variables are used to avoid name capture, for example in the expression ``\x. \x. \x. x x^2`` the variable occurrence ``x`` refers to the inner most parameter, while ``x^2`` refers to  the outermost one.
-
-Nominal reasoning allows lambda abstractions to be safely opened and closed when writing program transformations over higher order abstract syntax. For example, we can write a Shimmer program that takes an arbitrary Shimmer function of two parameters and swaps the order of the parameters, modifying the abstract syntax tree itself.
 
 Shimmer also contains a variety of well defined primitive operations such as for booleans, natural numbers, and several matching forms. All numeric operators have explicit prefixes giving the type they operate at, which makes the syntax unambiguous and easy to parse by third party tools.
 
@@ -50,7 +50,6 @@ Names starting with ``@`` refer to top-level macros that are expanded during eva
 
 ```
 $ shimmer Factorial.smr
-
 Shimmer, version 0.1. The Lambda Machine.
 Type :help for help.
 
