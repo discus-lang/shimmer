@@ -1,6 +1,6 @@
 
 
-@list-first xx
+@list-head xx
  = #list-uncons xx (\x xs. x) %fail;
 
 @swap-params x
@@ -10,7 +10,7 @@
  = #match-abs1 b1 (@swap-params-2 p1) %fail;
 
 @swap-params-2 p1 p2 b2
- = \x y. #nom-close (@list-first p2) x
-        (#nom-close (@list-first p1) y b2);
+ = \x y. #nom-close (@list-head p2) x
+        (#nom-close (@list-head p1) y b2);
 
 

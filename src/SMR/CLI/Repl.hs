@@ -113,7 +113,7 @@ replQuit _state
 -- | Display the help page.
 replHelp  :: RState -> HL.InputT IO ()
 replHelp state
- = do   HL.outputStrLn $ Help.helpCommands
+ = do   HL.outputStr $ Help.helpCommands
         replLoop state
 
 
@@ -121,7 +121,7 @@ replHelp state
 -- | Display the language grammar.
 replGrammar  :: RState -> HL.InputT IO ()
 replGrammar state
- = do   HL.outputStrLn $ Help.helpGrammar
+ = do   HL.outputStr $ Help.helpGrammar
         replLoop state
 
 
@@ -137,13 +137,14 @@ replPrims state
 
         HL.outputStr
          $ unlines
-         [ "  #true                   boolean true"
+         [ "  #unit                   unit value"
+         , "  #true                   boolean true"
          , "  #false                  boolean false"
          , "  #nat'NAT                natural number"
          , "  #list                   list constructor"
          , "" ]
 
-        HL.outputStrLn
+        HL.outputStr
          $ unlines
          $ [   leftPad 16 ("  #" ++ (Text.unpack $ name))
             ++ leftPad 10  (concat [showForm f | f <- Prim.primEvalForm p])
@@ -169,7 +170,6 @@ replDecls :: RState -> Set Name -> HL.InputT IO ()
 replDecls state names
  = do   liftIO  $ mapM_ (printDecl names)
                 $ stateDecls state
-        HL.outputStr "\n"
 
         replLoop state
 
@@ -262,7 +262,6 @@ replPush_next state xx
          -> do  liftIO  $ TL.putStrLn
                         $ BL.toLazyText
                         $ Source.buildExp Source.CtxTop xx'
-                HL.outputStr "\n"
 
                 replLoop $ state { stateMode = ModePush xx' }
 
@@ -293,7 +292,6 @@ replStep_next state config xx
           -> do  liftIO  $ TL.putStrLn
                          $ BL.toLazyText
                          $ Source.buildExp Source.CtxTop xx'
-                 HL.outputStr "\n"
 
                  replLoop $ state { stateMode = ModeStep config xx' }
 
@@ -321,7 +319,6 @@ replSteps_next state config xx
           -> do  liftIO  $ TL.putStrLn
                          $ BL.toLazyText
                          $ Source.buildExp Source.CtxTop xx'
-                 HL.outputStr "\n"
 
                  replLoop $ state { stateMode = ModeNone }
 
