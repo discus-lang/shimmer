@@ -19,6 +19,7 @@ pprPrim pp
 
         PrimLitNat n       -> Text.pack $ "nat'" ++ show n
 
+        PrimTagUnit        -> "unit"
         PrimTagList        -> "list"
 
 
@@ -39,8 +40,8 @@ readPrim ps tx
  | Set.member tx ps
  = Just $ PrimOp tx
 
- | tx == "list"
- = Just $ PrimTagList
+ | tx == "unit" = Just PrimTagUnit
+ | tx == "list" = Just PrimTagList
 
  -- Unrecognised.
  | otherwise

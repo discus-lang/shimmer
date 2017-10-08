@@ -3,6 +3,7 @@ module SMR.Prim.Op where
 import SMR.Prim.Op.Base
 import SMR.Prim.Op.Bool
 import SMR.Prim.Op.Nat
+import SMR.Prim.Op.Nom
 import SMR.Prim.Op.List
 import SMR.Prim.Op.Match
 import Data.Text                (Text)
@@ -14,9 +15,11 @@ primEvals :: [PrimEval s Prim w]
 primEvals
  = concat
         [ primOpsBool
-        , primOpsNat
+        , primOpsNom
+        , primOpsList
         , primOpsMatch
-        , primOpsList ]
+        , primOpsNat ]
+
 
 
 primOpTextNames :: Set Text

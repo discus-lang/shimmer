@@ -11,6 +11,7 @@ data Prim
         = PrimOp        Text
         | PrimLitBool   Bool
         | PrimLitNat    Integer
+        | PrimTagUnit
         | PrimTagList
         deriving (Eq, Ord, Show)
 
