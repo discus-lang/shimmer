@@ -9,6 +9,8 @@
   #unit                   unit value
 ```
 
+``#unit`` is the inert unit value. It is used as a default argument and return value for some of the other primitives.
+
 
 ### Bool
 
@@ -24,6 +26,12 @@
   #if           !~~       boolean if-then-else operator
 ```
 
+``#true`` and ``#false`` are the boolean literals.
+
+``#not``, ``#and`` and ``#or`` are the usual boolean operators.
+
+``#if`` is the usual control structure, with the scrutinee evaluated call-by-value and the 'then' and 'else' branches call-by-name.
+
 
 ### Natural Numbers
 
@@ -37,6 +45,7 @@
   #nat-mul      !!        natural multiplication
   #nat-div      !!        natural division
   #nat-rem      !!        natural remainder
+
   #nat-eq       !!        natural equality
   #nat-neq      !!        natural negated equality
   #nat-lt       !!        natural less than
@@ -44,6 +53,10 @@
   #nat-gt       !!        natural greater than
   #nat-ge       !!        natural greather than equal
 ```
+
+Natural number literals are writen like ``#nat'0`` and ``#nat'1234``.
+
+The natural number operators are standard. The ``#nat-add`` through ``#nat-rem`` operators produce natural number results, while the ``#nat-eq`` through ``#nat-ge`` comparison operators produce booleans.
 
 
 ### List
@@ -54,11 +67,25 @@
   #list                   list constructor
 
   #list-cons    ~!        add an element to the front of a list
-  #list-uncons  !~~       split an element from the front of a list
   #list-snoc    !~        add an element to the end of a list
-  #list-unsnoc  !~~       split an element from the end of a list
   #list-append  !!        append two lists
+
+  #list-uncons  !~~       split an element from the front of a list
+  #list-unsnoc  !~~       split an element from the end of a list
 ```
+
+List literals are written like ``#list %a %b``. Note that the ``#list`` constructor itself does not evaluate its arguments, so ``#list (#nat-add #nat'2 #nat'4)`` is normal.
+
+``#list-cons`` appends an element to the front of a list.
+``#list-cons %a (#list %b %c) ==> #list %a %b %c``.
+
+``#list-snoc`` appends an element to the end of a list.
+``#list-snoc (#list %a %b) %c ==> #list %a %b %c``.
+
+``#list-append`` appends two lists.
+``#list-append (#list %a %b) (#list %c %d) ==> #list %a %b %c %d``
+
+
 
 
 ### Nominal
