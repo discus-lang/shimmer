@@ -24,17 +24,17 @@ import Data.Monoid
 
 
 -------------------------------------------------------------------------------
-data Mode s p
+data Mode s p w
         = ModeNone
         | ModeParse
         | ModePush (Exp s p)
-        | ModeStep (Step.Config s p) (Exp s p)
+        | ModeStep (Step.Config s p w) (Exp s p)
 
 
 data State s p w
         = State
         { -- | Current interpreter mode.
-          stateMode     :: Mode s p
+          stateMode     :: Mode s p w
 
           -- | Top-level declarations parsed from source files.
         , stateDecls    :: [Decl s p]
@@ -47,7 +47,7 @@ data State s p w
 
 
 type RState     = State Text Prim.Prim ()
-type RConfig    = Step.Config Text Prim.Prim
+type RConfig    = Step.Config Text Prim.Prim ()
 type RWorld     = World.World  ()
 type RDecl      = Decl  Text Prim.Prim
 type RExp       = Exp   Text Prim.Prim

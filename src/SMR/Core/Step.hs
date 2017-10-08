@@ -16,7 +16,7 @@ import qualified Data.Map       as Map
 
 --------------------------------------------------------------------------------
 -- | Evaluation config
-data Config s p
+data Config s p w
         = Config
         { -- | Reduce under lambda abstractions.
           configUnderLambdas    :: !Bool
@@ -25,7 +25,7 @@ data Config s p
         , configHeadArgs        :: !Bool
 
           -- | Primitive operator declarations.
-        , configPrims           :: !(Map p (PrimEval s p))
+        , configPrims           :: !(Map p (PrimEval s p w))
 
           -- | Macro declarations.
         , configDeclsMac        :: !(Map Name (Exp s p)) }
@@ -41,7 +41,7 @@ data Result
 -------------------------------------------------------------------------------
 -- | Multi-step reduction to normal form.
 steps   :: (Ord p, Show p)
-        => Config s p
+        => Config s p w
         -> World w -> Exp s p
         -> IO (Either Text (Exp s p))
 
@@ -63,7 +63,7 @@ steps !config !world !xx
 --   that manages the evaluation context properly.
 --
 step    :: (Ord p, Show p)
-        => Config s p
+        => Config s p w
         -> World w -> Exp s p
         -> IO (Either Result (Exp s p))
 
@@ -187,7 +187,7 @@ step !config !world !xx
 -- | Step an application of a primitive operators to its arguments.
 stepAppPrm
         :: (Ord p, Show p)
-        => Config s p
+        => Config s p w
         -> World w -> p -> [Exp s p]
         -> IO (Either Result (Exp s p))
 
@@ -201,7 +201,7 @@ stepAppPrm !config !world !prim !xsArgs
 -- | Step an application of an abstraction applied to its arguments.
 stepAppAbs
         :: (Ord p, Show p)
-        => Config s p
+        => Config s p w
         -> World w -> [Param] -> Exp s p -> [Exp s p]
         -> IO (Either Result (Exp s p))
 
@@ -284,7 +284,7 @@ stepAppSeq !xBody !xsArgs
 -- | Step an application of the ##tag superprim.
 stepAppTag
         :: (Ord p, Show p)
-        => Config s p
+        => Config s p w
         -> World w -> Exp s p -> [Exp s p]
         -> IO (Either Result (Exp s p))
 
@@ -299,8 +299,8 @@ stepAppTag !config !world !xBody !xsArgs
 -- | Step an application of a primitive operator to some arguments.
 stepPrim
         :: (Ord p, Show p)
-        => Config s p
-        -> World w -> PrimEval s p -> [Exp s p]
+        => Config s p w
+        -> World w -> PrimEval s p w -> [Exp s p]
         -> IO (Either Result (Exp s p))
 
 stepPrim !config !world !pe !xsArgs
@@ -308,15 +308,17 @@ stepPrim !config !world !pe !xsArgs
  = let
         -- Evaluation of arguments is complete.
         evalArgs [] [] xsArgsDone
-         = case eval (reverse xsArgsDone) of
-                Just xResult    -> return $ Right xResult
-                Nothing         -> return $ Left ResultDone
+         = do   mr <- eval world (reverse xsArgsDone)
+                case mr of
+                 Just xResult    -> return $ Right xResult
+                 Nothing         -> return $ Left ResultDone
 
         -- We have more args than the primitive will accept.
         evalArgs [] xsArgsRemain xsArgsDone
-         = case eval (reverse xsArgsDone) of
-                Just xResult    -> return $ Right $ makeXApps xResult xsArgsRemain
-                Nothing         -> return $ Left ResultDone
+         = do   mr <- eval world (reverse xsArgsDone)
+                case mr of
+                 Just xResult    -> return $ Right $ makeXApps xResult xsArgsRemain
+                 Nothing         -> return $ Left ResultDone
 
         -- Evaluate the next argument if needed.
         evalArgs (cArg' : csArg') (xArg' : xsArg') xsArgsDone
@@ -354,7 +356,7 @@ stepPrim !config !world !pe !xsArgs
 --   reducing them all towards values.
 stepFirstVal
         :: (Ord p, Show p)
-        => Config s p
+        => Config s p w
         -> World w -> [Exp s p]
         -> IO (Either Result [Exp s p])
 
@@ -365,7 +367,7 @@ stepFirstVal !config !world !xx
 -- | Step the first available expression in a list.
 stepFirst
         :: (Ord p, Show p)
-        => Config s p
+        => Config s p w
         -> World w -> [Exp s p] -> [Form]
         -> IO (Either Result [Exp s p])
 

@@ -35,6 +35,7 @@ helpGrammar
  , "         |  '+' Name                       (Set reference)"
  , "         |  '%' Name                       (Symbol reference)"
  , "         |  '#' Name                       (Primitive reference)"
+ , "         |  '?' Name                       (Nominal reference)"
  , ""
  , "  Key   ::= '##tag'                        (Tag an expression)"
  , "         |  '##seq'                        (Sequence evaluation)"

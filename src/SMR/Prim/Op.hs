@@ -10,7 +10,7 @@ import Data.Set                 (Set)
 import qualified Data.Set       as Set
 
 
-primEvals :: [PrimEval s Prim]
+primEvals :: [PrimEval s Prim w]
 primEvals
  = concat
         [ primOpsBool
