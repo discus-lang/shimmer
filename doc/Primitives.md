@@ -154,10 +154,14 @@ Test if the first argument is an application. If so, apply the functional expres
 
 ``#match-abs (\x ~y. %body x y) %yes %no ==> %yes (#list (#list ?0 #true) (#list ?1 #false)) (%body ?0 ?1)``
 
-Test if the first argument is an abstraction. If so allocate fresh nominal variables for each parameter, and apply the second argument to two no arguments. The first new argument is list of pairs consisting of the nominal variables and a flag indicating whether the parameter was call-by-value (``#true``)  or call-by-name (``#false``). The second new argument is the body of the abstraction with the nominal variables substituted for the parameter variables. If the first argument is not an abstraction then return the third argument.
+``#match-abs %a %yes %no ==> %no``
+
+Test if the first argument is an abstraction. If so allocate fresh nominal variables for each parameter, and apply the second argument to two new arguments describing the abstraction. The first new argument is list of pairs consisting of the fresh nominal variables and a flag indicating whether the parameter was call-by-value (``#true``)  or call-by-name (``#false``). The second new argument is the body of the abstraction, with the nominal variables substituted for the parameter variables. If the first argument is not an abstraction then return the third argument.
 
 
 ``#match-abs1 (\x ~y. %body x y) %yes %no ==> %yes (#list ?10 #true) (\~y.%body ?10 y)``
+
+``#match-abs1 %a %yes %no ==> %no``
 
 Like ``#match-abs`` above, but only split the first parameter from the abstraction.
 
