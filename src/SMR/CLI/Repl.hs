@@ -10,6 +10,7 @@ import qualified SMR.Prim.Op.Base               as Prim
 import qualified SMR.Source.Parser              as Source
 import qualified SMR.Source.Lexer               as Source
 import qualified SMR.Source.Pretty              as Source
+import qualified SMR.Source.Expected            as Source
 import qualified Data.Text.Lazy.IO              as TL
 import qualified Data.Text.Lazy.Builder         as BL
 import qualified System.Console.Haskeline       as HL
@@ -218,7 +219,10 @@ loadDecls _state path
 
         case Source.parseDecls config ts of
            Left err
-            -> do  putStrLn $ show err
+            -> do  liftIO
+                        $ putStrLn
+                        $ "parse error\n"
+                        ++ Source.pprParseError err
                    return []
 
            Right decls
@@ -396,10 +400,11 @@ replParseExp _state str
 
         case Source.parseExp config ts of
          Left err
-          -> do liftIO $ print err
+          -> do liftIO  $ putStrLn
+                        $ "parse error\n"
+                        ++ Source.pprParseError err
                 return Nothing
 
          Right xx
           -> return (Just xx)
-
 

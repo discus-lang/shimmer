@@ -14,7 +14,12 @@ data Located a
         deriving Show
 
 
--- | Take the endpoint of a located thing.
+-- | Take the start point of a located thing.
+startOfLocated :: Located a -> Location
+startOfLocated (LL start _ _) = start
+
+
+-- | Take the end point of a located thing.
 endOfLocated :: Located a -> Location
 endOfLocated (LL _ end _) = end
 

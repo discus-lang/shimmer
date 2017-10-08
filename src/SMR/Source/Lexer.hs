@@ -66,8 +66,12 @@ lexName lStart xx
  = go lStart [] xx
  where
         go lStart' acc []
+         | not $ null acc
          = let  name    = Text.pack $ reverse acc
            in   Just (name, lStart', [])
+
+         | otherwise
+         = Nothing
 
         go lStart' acc (c : cs)
          | isNameBodyChar c
@@ -98,7 +102,6 @@ lexNat lStart xx
 
         go _ _ _
          = Nothing
-
 
 
 -- Whitespace -----------------------------------------------------------------

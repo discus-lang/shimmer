@@ -2,6 +2,7 @@
 module SMR.Source.Expected where
 import SMR.Source.Parsec
 import SMR.Source.Token
+import SMR.Data.Located
 import SMR.Data.Bag                     (Bag)
 import Data.Text                        (Text)
 import qualified SMR.Data.Bag           as Bag
@@ -42,34 +43,47 @@ data Expected t s p
 
 -- | Pretty print an expected thing.
 pprExpected
-        :: (Show t, Show s, Show p)
-        => Expected t s p -> String
+        :: (Show s, Show p)
+        => Expected (Located Token) s p -> String
 pprExpected bb
  = case bb of
         ExBaseEnd       -> "expecting end of input"
         ExBaseNameOf s  -> "expecting name " ++ show s
         ExBaseNat       -> "expecting natural number"
-        ExBasePunc c    -> "expecting punctuation " ++ show c
+        ExBasePunc c    -> "expecting " ++ show c
         ExBaseMsg t     -> "expecting " ++ show t
         ExBaseNameAny   -> "expecting name"
 
         ExContextDecl n es
-         -> "\n" ++ "in declaration " ++ Text.unpack n ++ "\n"
+         -> "in declaration @" ++ Text.unpack n ++ "\n"
          ++ (unlines $ map pprBlocker $ Bag.toList es)
 
-        ExContextBind n es
-         -> "\n" ++ "in binding "     ++ Text.unpack n ++ "\n"
-         ++ (unlines $ map pprBlocker $ Bag.toList es)
+        ExContextBind n esBag
+         | e : _        <- Bag.toList esBag
+         -> "in binding " ++ Text.unpack n ++ "\n"
+         ++ pprBlocker e
+
+         | otherwise
+         -> "in binding " ++ Text.unpack n
 
 
 -- | Pretty print a blocker.
 pprBlocker
-        :: (Show t, Show s, Show p)
-        => Blocker t (Expected t s p) -> String
-pprBlocker (Blocker ts e)
- = case ts of
-        []      -> pprExpected e
-        t : _   -> "at token " ++ show t ++ " " ++ pprExpected e
+        :: (Show s, Show p)
+        => Blocker (Located Token) (Expected (Located Token) s p)
+        -> String
+
+pprBlocker (Blocker [] e)
+ = pprExpected e
+
+pprBlocker (Blocker (t : _) e)
+ =  pprLocation (startOfLocated t)
+ ++ " " ++ pprExpected e
+
+
+pprLocation :: Location -> String
+pprLocation (L l c)
+ = show l ++ ":" ++ show c
 
 
 -------------------------------------------------------------------------------
@@ -81,8 +95,12 @@ data ParseError t e
 
 -- | Pretty print a parser error.
 pprParseError
-        :: (Show t, Show s, Show p)
-        => ParseError t (Expected t s p) -> String
-pprParseError (ParseError bs)
- = unlines $ map pprBlocker bs
+        :: (Show s, Show p)
+        => ParseError (Located Token) (Expected (Located Token) s p) -> String
+
+pprParseError (ParseError [])
+ = "at end of input"
+
+pprParseError (ParseError (b : _bs))
+ = pprBlocker b
 
