@@ -25,8 +25,8 @@ Exp   ::=  Ref                            (External reference)
 Expressions consist of references, keyword applications, function applications,
 variables, abstractions and substitution trains.
 
-References to top-level external things are have a different form to variables as
-there is no possiblity of name capture during substitution.
+References to external things are are specified separately from variables as there
+is no possibility of name capture during substitution.
 
 Keyword applications are used when applying keywords as they only take one argument
 expression at a tome.
@@ -88,11 +88,10 @@ Key   ::= '##box'                         (Box an expression, delaying evaluatio
 
 Keywords are used to control evaluation order.
 
-The ``##box`` keyword is used to delay evaluation of an expression when it is
+The ``##box`` keyword is used to suspend evaluation of an expression when it is
 used as the argument of a call-by-value abstraction.
 
 The ``##run`` keyword is used to force the evaluation of a boxed expression.
-
 
 
 ## Substitutions
@@ -109,5 +108,24 @@ Bind  ::= Name ('^' Nat)? '=' Exp         (Variable Substitution binding)
 
 Bump  ::= Name ('^' Nat)? ':' Nat         (Lifting bump)
 ```
+
+Explicit substitutions consists of a train of individual cars.
+
+Substitution cars consist of simultaneous substitutions, recursive substitutions,
+and lifting specifiers.
+
+Simultaneous substitutions contain a list of bindings that are applied simultaneously
+when they reach a bound variable, for example ``[x=%a, y=x].(x y) ==> (%a x)``.
+
+Recursive substitutions operate like simultaneous substitutions, except that the
+whole substitution is re-applied to and substitution result, for example
+``[[x=x x]].x ==> [[x=x x]].(x x) ==> ([[x=x x]].x x) ([[x= x x]].x x)``
+
+Lifting specifiers are used to increase the bump counter on variables, for example
+``{x^2:4}.(x x^2) ==> (x x^6)``.
+
+The bindings in simultaneous and recursive substitutions can also substitute for
+nominal variables, for example ``[x=%a, ?0=%b].(x ?0 x) ==> %a %b %a``.
+
 
 
