@@ -16,6 +16,7 @@ module SMR.Core.Exp
 
          -- * Compounds
         , makeXApps, takeXApps
+        , makeXAbs
         , nameOfParam, formOfParam
 
          -- * Substitution Trains

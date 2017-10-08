@@ -27,6 +27,14 @@ takeXApps xx
         _ -> Nothing
 
 
+-- Abs ------------------------------------------------------------------------
+-- | Make an abstraction,
+--   short circuiting to the body if there are no parameters.
+makeXAbs :: [Param] -> Exp s p -> Exp s p
+makeXAbs [] xBody = xBody
+makeXAbs ps xBody = XAbs ps xBody
+
+
 -- Param ----------------------------------------------------------------------
 -- | Get the name of a function parameter.
 nameOfParam :: Param -> Name

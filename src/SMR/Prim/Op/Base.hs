@@ -74,6 +74,13 @@ takeArgNat xx
         _ -> Nothing
 
 
+-- List ---------------------------------------------------
+-- | Make a list of expressions.
+makeXList :: [Exp s Prim] -> Exp s Prim
+makeXList xs
+ = XApp (XRef (RPrm PrimTagList)) xs
+
+
 -------------------------------------------------------------------------------
 -- | Primitive evaluator.
 data PrimEval s p w

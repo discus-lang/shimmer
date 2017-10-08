@@ -74,6 +74,7 @@ pushTrain cs1 x2
         XRef (RMac _)   -> Just x2
         XRef (RSym _)   -> Just x2
         XRef (RPrm _)   -> Just x2
+        XRef (RNom _)   -> Just x2
 
         -- Reference to some other thing.
         XRef _          -> Nothing
