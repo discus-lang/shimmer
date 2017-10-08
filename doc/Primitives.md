@@ -12,7 +12,7 @@
 ``#unit`` is the inert unit value. It is used as a default argument and return value for some of the other primitives.
 
 
-### Bool
+### Boolean
 
 ```
   name          params    description
@@ -105,10 +105,15 @@ Splits a list into its last and initial elements and passes both components to a
 ```
   name          params    description
   ----          ------    -----------
-  #nom-eq       !!        check equality of two nominal variables
   #nom-fresh    !         allocate a fresh nominal variable
+  #nom-eq       !!        check equality of two nominal variables
   #nom-close    !~~       creating a closing substitution for a nominal variable
 ```
+
+``#nom-fresh #unit ==> ?5``
+
+Generate a fresh nominal variable. If the argument is not ``#unit`` then stuck.
+
 
 ``#nom-eq ?0 ?0 ==> #true``
 
@@ -117,14 +122,9 @@ Splits a list into its last and initial elements and passes both components to a
 Tests if two nominal variables are identical. If the arguments are not nominal variables then stuck.
 
 
-``#nom-fresh #unit ==> ?5``
-
-Generate a fresh nominal variable. If the argument is not ``#unit`` then stuck.
-
-
 ``#nom-close ?0 %a (\x. x ?0 %b) ==> \x. x %a %b``
 
-Close a given nominal variable, substituting the second argument for all occurrences of the variable in the third argument. If the first argument is not a nominal variable then stuck.
+Close a nominal variable, substituting the second argument for all occurrences of the variable in the third argument. If the first argument is not a nominal variable then stuck.
 
 
 ### Matching
@@ -137,4 +137,22 @@ Close a given nominal variable, substituting the second argument for all occurre
   #match-abs    !~~       match all parameters of an abstraction
   #match-abs1   !~~       match the first parameter of an abstraction
 ```
+
+``#match-sym %a %yes %no ==> %yes %a``
+
+``#match-sym #nat'5 %yes %no ==> %no``
+
+Test if the first argument is a symbol. If so, apply it to the second argument, otherwise return the third argument.
+
+
+``#match-app (%a %b %c) %yes %no ==> %yes %a %b %c``
+
+``#match-app %a %yes %no ==> %no``
+
+Test if the first argument is an application. If so, apply the functional expression and the arguments separately to the second argument, otherwise return the third argument.
+
+
+
+
+
 
