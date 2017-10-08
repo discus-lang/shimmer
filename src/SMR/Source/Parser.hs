@@ -270,13 +270,13 @@ pBind c
  -> P.alt
         (do _       <- pPunc '='
             x       <- pExp c
-            return  ((name, 0), x))
+            return  $ BindVar name 0 x)
 
         (do _       <- pPunc '^'
             bump    <- pNat
             _       <- pPunc '='
             x       <- pExp c
-            return  ((name, bump), x))
+            return  $ BindVar name bump x)
 
 
 -- Ups ------------------------------------------------------------------------

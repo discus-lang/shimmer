@@ -145,7 +145,7 @@ buildSnv (SSnv vs)
 
 -- | Yield a builder for a substitution binding.
 buildSnvBind :: (Build s, Build p) => SnvBind s p -> Builder
-buildSnvBind ((name, bump), xx)
+buildSnvBind (BindVar name bump xx)
  | bump == 0
  = B.fromText name
  <> "=" <> buildExp CtxTop xx

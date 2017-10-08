@@ -94,8 +94,9 @@ data Snv s p
         = SSnv ![SnvBind s p]
         deriving Show
 
-type SnvBind s p
-        = ((Name, Integer), Exp s p)
+data SnvBind s p
+        = BindVar !Name !Integer !(Exp s p)
+        deriving Show
 
 
 -- | Lifting indicator,

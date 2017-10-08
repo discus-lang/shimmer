@@ -8,7 +8,7 @@ module SMR.Core.Exp
         , Key   (..)
         , Train
         , Car   (..)
-        , Snv   (..), SnvBind
+        , Snv   (..), SnvBind(..)
         , Ups   (..), UpsBump
         , Ref   (..)
         , Name

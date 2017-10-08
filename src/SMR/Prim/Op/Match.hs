@@ -61,12 +61,12 @@ primOpMatchApp
 
 
 
--- Match all parameters of an abstraction.
+-- | Match all parameters of an abstraction.
 primOpMatchAbs :: PrimEval s Prim w
 primOpMatchAbs
  = PrimEval
         (PrimOp "match-abs")
-        "match an abstraction"
+        "match all parameters of an abstraction"
         [PVal, PExp, PExp] fn'
  where
         fn' world as0
@@ -101,15 +101,15 @@ primOpMatchAbs
                                 | ix <- ixs | p  <- ps11 ]
 
                 let xBody
-                        = XSub  [CSim  (SSnv [((nameOfParam p, 0), (XRef (RNom ix)))
-                                | p  <- ps11 | ix <- ixs ])]
+                        = XSub  [CSim  (SSnv [BindVar (nameOfParam p) 0 (XRef (RNom ix))
+                                              | p  <- ps11 | ix <- ixs ])]
                                  x12
 
                 return  $ Just
                         $ XApp x2 (xIxs : [xBody])
 
 
--- Match the first parameter of an abstraction.
+-- | Match the first parameter of an abstraction.
 primOpMatchAbs1 :: PrimEval s Prim w
 primOpMatchAbs1
  = PrimEval
@@ -148,7 +148,7 @@ primOpMatchAbs1
                         , XRef (RPrm (PrimLitBool (boolOfForm $ formOfParam p1))) ]
 
                 let xBody
-                        = XSub [ CSim (SSnv [((nameOfParam p1, 0), (XRef (RNom ix)))])]
+                        = XSub [ CSim (SSnv [BindVar (nameOfParam p1) 0 (XRef (RNom ix))])]
                         $ makeXAbs ps11 x12
 
                 return  $ Just

@@ -1,4 +1,4 @@
-
+{-# LANGUAGE ParallelListComp #-}
 module SMR.Core.Exp.Train where
 import SMR.Core.Exp.Base
 import Data.Maybe
@@ -116,7 +116,7 @@ carIsEmpty c
 -- | Build a substitution from lists of names and arguments.
 snvOfNamesArgs :: [Name] -> [Exp s p] -> Snv s p
 snvOfNamesArgs ns xs
- = SSnv (zip  (zip ns (replicate (length ns) 0)) xs)
+ = SSnv [BindVar n 0 x | n <- ns | x <- xs]
 
 
 -- | Check if the given substitution is empty.
@@ -133,9 +133,10 @@ snvBump :: [Name] -> Snv s p -> Snv s p
 snvBump ns (SSnv ts)
  = SSnv $ mapMaybe (snvBump1 ns) ts
  where
-        snvBump1 names ((name, depth), x)
-         = Just ( (name, depth + (if elem name names then 1 else 0))
-                , upsApply (UUps (map (\name' -> ((name', 0), 1)) names)) x)
+        snvBump1 names (BindVar name depth x)
+         = Just
+         $ BindVar name (depth + (if elem name names then 1 else 0))
+                   (upsApply (UUps (map (\name' -> ((name', 0), 1)) names)) x)
 
 
 -- | Wrap a train consisting of a single simultaneous substitution
@@ -155,7 +156,7 @@ snvApplyVar isRec snv@(SSnv bs) name depth
         []
          -> XVar name depth
 
-        ((name', depth'), x') : bs'
+        BindVar name' depth' x' : bs'
          |  name  == name'
          ,  depth == depth'
          -> if isRec then XSub (CRec snv : []) x'
