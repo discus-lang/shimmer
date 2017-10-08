@@ -88,7 +88,8 @@ lexNat lStart xx
  = go lStart [] xx
  where
         go lStart' acc []
-         | all Char.isDigit acc
+         | not $ null acc
+         , all Char.isDigit acc
          , nat <- read $ reverse acc
          = Just (nat, lStart', [])
 
@@ -97,6 +98,7 @@ lexNat lStart xx
          = go (incCharOfLocation 1 lStart') (c : acc) cs
 
          | all Char.isDigit acc
+         , not $ null acc
          , nat <- read $ reverse acc
          = Just (nat, lStart', c : cs)
 

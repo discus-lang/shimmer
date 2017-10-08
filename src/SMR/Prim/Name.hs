@@ -34,6 +34,7 @@ readPrim ps tx
  | Text.isPrefixOf "nat'" tx
  , tx'  <- Text.unpack $ Text.drop 4 tx
  , all Char.isDigit tx'
+ , not $ null tx'
  = Just $ PrimLitNat (read tx')
 
  -- Other primtiives.
