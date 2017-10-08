@@ -22,7 +22,6 @@ helpGrammar :: String
 helpGrammar
  = unlines $
  [ "  Decl  ::= '@' Name Param* '=' Exp ';'    (Macro declaration)"
- , "         |  '+' Name        '=' Exp ';'    (Set member declaration)"
  , ""
  , "  Exp   ::=  Ref                           (External reference)"
  , "         |   Key Exp                       (Keyword  application)"
@@ -32,7 +31,6 @@ helpGrammar
  , "         |   Train      '.' Exp            (Substitution train)"
  , ""
  , "  Ref   ::= '@' Name                       (Macro reference)"
- , "         |  '+' Name                       (Set reference)"
  , "         |  '%' Name                       (Symbol reference)"
  , "         |  '#' Name                       (Primitive reference)"
  , "         |  '?' Nat                        (Nominal reference)"
