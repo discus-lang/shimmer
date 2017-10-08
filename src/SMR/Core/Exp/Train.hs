@@ -86,7 +86,7 @@ trainApply cs1 xx
         _               -> XSub cs1 xx
 
 -- Apply a train onto a variable of a given name and depth.
-trainApplyVar :: [Car s p] -> Name -> Int -> Exp s p
+trainApplyVar :: [Car s p] -> Name -> Integer -> Exp s p
 trainApplyVar cs name depth
  = case cs of
         []
@@ -149,7 +149,7 @@ snvApply isRec snv@(SSnv bs) xx
 
 
 -- | Apply a substitution to a variable of a given name and depth.
-snvApplyVar :: Bool -> Snv s p -> Name -> Int -> Exp s p
+snvApplyVar :: Bool -> Snv s p -> Name -> Integer -> Exp s p
 snvApplyVar isRec snv@(SSnv bs) name depth
  = case bs of
         []
@@ -187,7 +187,7 @@ upsApply ups@(UUps us) xx
 
 
 -- | Apply an ups to a variable.
-upsApplyVar :: Ups -> Name -> Int -> Exp s n
+upsApplyVar :: Ups -> Name -> Integer -> Exp s n
 upsApplyVar (UUps bs) name ix
  = case bs of
         []

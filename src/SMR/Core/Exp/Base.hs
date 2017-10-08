@@ -25,7 +25,7 @@ data Exp s p
         | XApp  !(Exp s p) ![Exp s p]
 
         -- | Variable name with a binding depth.
-        | XVar  !Name !Int
+        | XVar  !Name !Integer
 
         -- | Abstraction with a list of parameters and a body expression.
         | XAbs  ![Param] !(Exp s p)
@@ -95,7 +95,7 @@ data Snv s p
         deriving Show
 
 type SnvBind s p
-        = ((Name, Int), Exp s p)
+        = ((Name, Integer), Exp s p)
 
 
 -- | Lifting indicator,
@@ -105,7 +105,7 @@ data Ups
         deriving Show
 
 type UpsBump
-        = ((Name, Int), Int)
+        = ((Name, Integer), Integer)
 
 
 -- | A reference to some external thing.

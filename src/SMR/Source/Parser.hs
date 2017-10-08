@@ -151,6 +151,10 @@ pExpAtom c
         _       <- pPunc ')'
         return x
 
+        -- Nominal variable.
+ , do   _ <- pPunc '?'
+        n <- pNat
+        return $ XRef (RNom n)
 
         -- Named variable with or without index.
  , do   (space, name) <- pName
@@ -182,8 +186,10 @@ pExpAtom c
                 Nothing -> P.fail
 
          -- Named keyword.
-         SKey
-          -> P.fail
+         SKey -> P.fail
+
+         -- Named nominal (should be handled above)
+         SNom -> P.fail
  ]
 
 
@@ -308,7 +314,7 @@ pBump
 
 -------------------------------------------------------------------------------
 -- | Parser for a natural number.
-pNat :: Parser s p Int
+pNat :: Parser s p Integer
 pNat
  = P.from ExBaseNat (takeNatOfToken . valueOfLocated)
 

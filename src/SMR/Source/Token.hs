@@ -8,7 +8,7 @@ data Token
         = KEnd                  -- ^ End of input.
         | KPunc Char            -- ^ Punctuation character.
         | KName Space Text      -- ^ A scoped name.
-        | KNat  Int             -- ^ A natural number.
+        | KNat  Integer         -- ^ A natural number.
         deriving (Show, Eq)
 
 
@@ -20,6 +20,7 @@ data Space
         | SSet                  -- ^ Set name.
         | SPrm                  -- ^ Primitive name.
         | SKey                  -- ^ Keyword (super primitive)
+        | SNom                  -- ^ Nominal name.
         deriving (Show, Eq)
 
 
@@ -55,7 +56,7 @@ takeAnyNameOfToken kk
 
 
 -- | Take the natural number from a token, if any.
-takeNatOfToken :: Token -> Maybe Int
+takeNatOfToken :: Token -> Maybe Integer
 takeNatOfToken kk
  = case kk of
         KNat n          -> Just n

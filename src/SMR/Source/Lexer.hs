@@ -79,7 +79,7 @@ lexName lStart xx
 
 
 -- | Lex a natural number.
-lexNat  :: Location -> [Char] -> Maybe (Int, Location, [Char])
+lexNat  :: Location -> [Char] -> Maybe (Integer, Location, [Char])
 lexNat lStart xx
  = go lStart [] xx
  where
@@ -169,5 +169,6 @@ isCharPunc c
  | c == '$'     = True
  | c == '!'     = True
  | c == '~'     = True
+ | c == '?'     = True
  | otherwise    = False
 
