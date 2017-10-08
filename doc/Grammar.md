@@ -20,7 +20,7 @@ Exp   ::=  Ref                            (External reference)
        |   Name ('^' Nat)?                (Variable with lifting specifier)
        |   '\' Param+ '.' Exp             (Function abstraction)
        |   Train      '.' Exp             (Substitution train)
-``
+```
 
 Expressions consist of references, keyword applications, function applications,
 variables, abstractions and substitution trains.
