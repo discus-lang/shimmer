@@ -2,7 +2,6 @@
 -- | The Shimmer Abstract Syntax Tree (AST)
 module SMR.Core.Exp.Base where
 import Data.Text                (Text)
-import Data.Vector              (Vector)
 
 
 -- | Top-level declaration,
@@ -122,6 +121,9 @@ data Ref s p
 
         -- | A set name.
         | RSet  Name
+
+        -- | A nominal variable.
+        | RNom  Integer
         deriving Show
 
 

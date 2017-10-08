@@ -1,7 +1,6 @@
 
 module SMR.Core.Exp.Compounds where
 import SMR.Core.Exp.Base
-import Data.Vector              (Vector)
 
 
 -- Apps -----------------------------------------------------------------------

@@ -14,14 +14,12 @@ import qualified Data.Text.Lazy.IO              as TL
 import qualified Data.Text.Lazy.Builder         as BL
 import qualified System.Console.Haskeline       as HL
 import qualified Data.Char                      as Char
-import qualified Data.List                      as List
 import qualified Data.Map                       as Map
 import qualified Data.Set                       as Set
 import qualified Data.Text                      as Text
 import Control.Monad.IO.Class
 import Data.Text                                (Text)
 import Data.Set                                 (Set)
-import Data.Maybe
 import Data.Monoid
 
 
@@ -78,6 +76,7 @@ replLoop state
                 ModeNone        -> replLoop state
                 ModePush xx     -> replPush_next state xx
                 ModeStep c xx   -> replStep_next state c xx
+                _               -> replLoop state
 
           | otherwise
           -> case words input of
@@ -106,7 +105,7 @@ replLoop state
 -------------------------------------------------------------------------------
 -- | Quit the repl.
 replQuit  :: RState -> HL.InputT IO ()
-replQuit state
+replQuit _state
  = do   return ()
 
 
@@ -155,9 +154,11 @@ replPrims state
 
         replLoop state
 
+showForm :: Form -> String
 showForm PVal   = "!"
 showForm PExp   = "~"
 
+leftPad :: Int -> [Char] -> [Char]
 leftPad n ss
  = ss ++ replicate (n - length ss) ' '
 
@@ -195,11 +196,6 @@ printDecl names decl
 replReload :: RState -> HL.InputT IO ()
 replReload state
  = do
-        let config
-                = Source.Config
-                { Source.configReadSym  = Just
-                , Source.configReadPrm  = Prim.readPrim Prim.primOpTextNames }
-
         decls   <- liftIO
                 $  fmap concat $ mapM (loadDecls state)
                 $  stateFiles state
@@ -209,7 +205,7 @@ replReload state
 
 
 loadDecls :: RState -> FilePath -> IO [RDecl]
-loadDecls state path
+loadDecls _state path
  = do
         let config
                 = Source.Config
@@ -217,7 +213,7 @@ loadDecls state path
                 , Source.configReadPrm  = Prim.readPrim Prim.primOpTextNames }
 
         str     <- readFile path
-        let (ts, loc, csRest)
+        let (ts, _loc, _csRest)
                 = Source.lexTokens (Source.L 1 1) str
 
         case Source.parseDecls config ts of
@@ -392,8 +388,8 @@ replLoadExp state str eat
 
 -------------------------------------------------------------------------------
 replParseExp :: RState -> String -> IO (Maybe RExp)
-replParseExp state str
- = do   let (ts, loc, csRest)
+replParseExp _state str
+ = do   let (ts, _loc, _csRest)
                 = Source.lexTokens (Source.L 1 1) str
 
         let config

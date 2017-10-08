@@ -2,7 +2,6 @@
 module SMR.Core.Exp.Train where
 import SMR.Core.Exp.Base
 import Data.Maybe
-import qualified Data.Text      as T
 
 
 -- Train ----------------------------------------------------------------------
@@ -79,9 +78,9 @@ trainApply cs1 xx
 
  | otherwise
  = case xx of
-        XRef (RMac n)   -> xx
-        XRef (RSym n)   -> xx
-        XRef (RPrm n)   -> xx
+        XRef (RMac _)   -> xx
+        XRef (RSym _)   -> xx
+        XRef (RPrm _)   -> xx
         XVar name depth -> trainApplyVar cs1 name depth
         XSub cs2  x2    -> trainApply (trainAppend cs2 cs1) x2
         _               -> XSub cs1 xx
@@ -156,7 +155,7 @@ snvApplyVar isRec snv@(SSnv bs) name depth
         []
          -> XVar name depth
 
-        b'@((name', depth'), x') : bs'
+        ((name', depth'), x') : bs'
          |  name  == name'
          ,  depth == depth'
          -> if isRec then XSub (CRec snv : []) x'
@@ -194,7 +193,7 @@ upsApplyVar (UUps bs) name ix
         []
          -> XVar name ix
 
-        u'@((name', depth'), inc') : bs'
+        ((name', depth'), inc') : bs'
          |  name   == name'
          ,  depth' <= ix
          -> upsApplyVar (UUps bs') name (ix + inc')
@@ -206,8 +205,8 @@ upsApplyVar (UUps bs) name ix
 -- | Bump ups (substitution lifting) due to pushing it
 --   under an absraction with the given named binders.
 upsBump :: [Name] -> Ups -> Ups
-upsBump ns (UUps bs)
- = UUps $ mapMaybe (upsBump1 ns) bs
+upsBump ns0 (UUps bs)
+ = UUps $ mapMaybe (upsBump1 ns0) bs
  where
         upsBump1 ns l
          | ((n, d), inc) <- l

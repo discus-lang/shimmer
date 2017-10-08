@@ -2,6 +2,7 @@
 module SMR.CLI.Help where
 
 
+helpCommands :: String
 helpCommands
  = unlines $
  [ "  :quit,:q        Quit the REPL."
@@ -17,6 +18,7 @@ helpCommands
  , "  :trace  EXP     Multi-step evaluate an expression, showing intermediate states." ]
 
 
+helpGrammar :: String
 helpGrammar
  = unlines $
  [ "  Decl  ::= '@' Name Param* '=' Exp ';'    (Macro declaration)"

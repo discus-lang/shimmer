@@ -39,11 +39,11 @@ parseArgs ss config
  = parseArgs ssRest
  $ config { configMode  = ModeCheck filePath }
 
- | "-help"  : ssRest <- ss
+ | "-help"  : _ssRest <- ss
  = do   putStr usage
         System.exitSuccess
 
- | "--help"  : ssRest <- ss
+ | "--help"  : _ssRest <- ss
  = do   putStr usage
         System.exitSuccess
 

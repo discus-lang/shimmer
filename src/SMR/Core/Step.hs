@@ -7,7 +7,6 @@ module SMR.Core.Step
 where
 import SMR.Core.Exp
 import SMR.Core.World
-import SMR.Prim.Name
 import SMR.Prim.Op.Base
 import Data.Text                (Text)
 import Data.Map                 (Map)
@@ -137,6 +136,9 @@ step config world xx
                         |  otherwise
                         -> return $ Left ResultDone
 
+         | otherwise
+         -> return $ Left ResultDone
+
         -- Substitution trains.
         XSub{}
          -> case pushHead xx of
@@ -177,7 +179,7 @@ step config world xx
                  Left err  -> return $ Left err
 
         -- Tagged expressions are always done.
-        XKey KTag x
+        XKey KTag _x
          -> return $ Left ResultDone
 
 
@@ -302,7 +304,7 @@ stepPrim
         -> IO (Either Result (Exp s p))
 
 stepPrim config world pe xsArgs
- | PrimEval prim desc csArg eval <- pe
+ | PrimEval _prim _desc csArg eval <- pe
  = let
         -- Evaluation of arguments is complete.
         evalArgs [] [] xsArgsDone
@@ -341,7 +343,7 @@ stepPrim config world pe xsArgs
 
         -- We have less args than the prim will accept,
         -- so leave the application as it is.
-        evalArgs _ [] xsArgsDone
+        evalArgs _ [] _xsArgsDone
          = return $ Left ResultDone
 
    in   evalArgs csArg xsArgs []

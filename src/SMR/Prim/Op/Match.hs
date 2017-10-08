@@ -2,7 +2,6 @@
 module SMR.Prim.Op.Match where
 import SMR.Core.Exp
 import SMR.Prim.Op.Base
-import Data.Text        (Text)
 
 
 -- | Primitive matching operators.
@@ -27,7 +26,7 @@ primOpMatchSym
          , Just (x2, as2) <- takeArgExp as1
          , Just (x3, [])  <- takeArgExp as2
          = case x1 of
-                XRef (RSym s1)
+                XRef (RSym _s1)
                   -> Just $ XApp x2 [x1]
                 _ -> Just $ x3
         fn' _ = Nothing
@@ -66,7 +65,7 @@ primOpMatchAbs
          , Just (x2, as2) <- takeArgExp as1
          , Just (x3, [])  <- takeArgExp as2
          = case x1 of
-                XAbs ps11 x12
+                XAbs _ps11 x12
                   -> Just $ XApp x2 (XRef (RPrm (PrimLitNat 99)) : [x12])
                 _ -> Just $ x3
         fn' _ = Nothing

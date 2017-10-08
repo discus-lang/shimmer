@@ -1,7 +1,6 @@
 
 module SMR.Source.Parser where
 import SMR.Core.Exp.Base
-import SMR.Core.Exp.Compounds
 import SMR.Source.Expected
 import SMR.Source.Token
 import SMR.Source.Lexer
@@ -12,7 +11,6 @@ import Data.Text                        (Text)
 import qualified SMR.Source.Parsec      as P
 import qualified SMR.Data.Bag           as Bag
 import qualified Data.Text              as Text
-import qualified Data.Vector            as V
 
 
 type Parser s p a

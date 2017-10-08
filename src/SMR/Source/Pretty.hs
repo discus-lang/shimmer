@@ -69,9 +69,9 @@ buildExp ctx xx
 
         XApp x1 xs2
          -> let ppExp   =  buildExp CtxFun x1 <> " " <> go xs2
-                go []             = ""
-                go (x : [])       = buildExp CtxArg x
-                go (x1 : x2 : xs) = buildExp CtxArg x1 <> " " <> go (x2 : xs)
+                go []               = ""
+                go (x : [])         = buildExp CtxArg x
+                go (x11 : x21 : xs) = buildExp CtxArg x11 <> " " <> go (x21 : xs)
             in case ctx of
                 CtxArg  -> parens ppExp
                 _       -> ppExp
@@ -80,21 +80,21 @@ buildExp ctx xx
          -> let go []        = "."
                 go (p1 : []) = buildParam p1 <> "."
                 go (p1 : ps) = buildParam p1 <> " " <> go ps
-                exp          = "\\" <> go vs <> buildExp CtxTop x
+                ss           = "\\" <> go vs <> buildExp CtxTop x
             in  case ctx of
-                 CtxArg -> parens exp
-                 CtxFun -> parens exp
-                 _      -> exp
+                 CtxArg -> parens ss
+                 CtxFun -> parens ss
+                 _      -> ss
 
         XSub train x
          |  length train == 0
          -> buildExp ctx x
          |  otherwise
-         -> let exp     = buildTrain train <> "." <> buildExp CtxTop x
+         -> let ss     = buildTrain train <> "." <> buildExp CtxTop x
             in  case ctx of
-                 CtxArg  -> parens exp
-                 CtxFun  -> parens exp
-                 _       -> exp
+                 CtxArg  -> parens ss
+                 CtxFun  -> parens ss
+                 _       -> ss
 
 
 -- | Yield a builder for a parameter.
@@ -118,8 +118,8 @@ buildKey kk
 -- Train ----------------------------------------------------------------------
 -- | Yield a builder for a train.
 buildTrain  :: (Build s, Build p) => Train s p -> Builder
-buildTrain cs
- = go cs
+buildTrain cs0
+ = go cs0
  where  go []           = ""
         go (c : cs)     = go cs <> buildCar c
 
@@ -186,6 +186,7 @@ buildRef rr
         RSet n  -> "+" <> B.fromText n
         RSym s  -> "%" <> build s
         RPrm p  -> "#" <> build p
+        RNom i  -> "?" <> B.fromString (show i)
 
 
 -- Prim -----------------------------------------------------------------------

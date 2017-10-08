@@ -85,17 +85,19 @@ data PrimEval s p
 
 
 -- | Construct a primitive evaluator for a call-by-value arity-1 operator.
+--   TODO(BL): args are not used.
 primEvalOp1
         :: p -> Text -> [Form] -> ([Exp s p] -> Maybe (Exp s p))
         -> PrimEval s p
-primEvalOp1 name desc args fn
+primEvalOp1 name desc _args fn
  = PrimEval name desc [PVal] fn
 
 
 -- | Construct a primitive evaluator for a call-by-value arity-2 operator.
+--   TODO(BL): args are not used.
 primEvalOp2
         :: p -> Text -> [Form] -> ([Exp s p] -> Maybe (Exp s p))
         -> PrimEval s p
-primEvalOp2 name desc args fn
+primEvalOp2 name desc _args fn
  = PrimEval name desc [PVal, PVal] fn
 

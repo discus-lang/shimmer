@@ -1,11 +1,7 @@
 
 module Main where
-import SMR.Core.Exp.Base
-import SMR.Core.Exp.Train
-import SMR.Core.Exp.Push
 import qualified SMR.Core.World                 as World
 import qualified SMR.Prim.Op                    as Prim
-import qualified SMR.Prim.Op.Base               as Prim
 import qualified SMR.Prim.Name                  as Prim
 import qualified SMR.CLI.Config                 as Config
 import qualified SMR.CLI.Repl                   as Repl
@@ -13,12 +9,8 @@ import qualified SMR.Source.Parser              as Source
 import qualified SMR.Source.Lexer               as Source
 import qualified SMR.Source.Pretty              as Source
 import qualified System.Environment             as System
-import qualified System.Exit                    as System
-import qualified System.IO                      as System
 import qualified Data.Text.Lazy.IO              as TL
 import qualified Data.Text.Lazy.Builder         as BL
-import qualified Data.Char                      as Char
-import qualified Data.Set                       as Set
 import qualified Data.Maybe                     as Maybe
 
 
@@ -43,7 +35,7 @@ runCheck :: FilePath -> IO ()
 runCheck path
  = do   str     <- readFile path
 
-        let (ts, loc, csRest)
+        let (ts, _loc, _csRest)
                 = Source.lexTokens (Source.L 1 1) str
 
         let config

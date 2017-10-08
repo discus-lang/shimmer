@@ -71,9 +71,9 @@ pushTrain cs1 x2
         -- Unfold macro under a substitution.
         -- Macro and symbol bodies are closed,
         -- so we can drop the substitution.
-        XRef (RMac n)   -> Just x2
-        XRef (RSym n)   -> Just x2
-        XRef (RPrm n)   -> Just x2
+        XRef (RMac _)   -> Just x2
+        XRef (RSym _)   -> Just x2
+        XRef (RPrm _)   -> Just x2
 
         -- Reference to some other thing.
         XRef _          -> Nothing

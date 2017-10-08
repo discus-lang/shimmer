@@ -2,7 +2,6 @@
 module SMR.Prim.Op.List where
 import SMR.Core.Exp
 import SMR.Prim.Op.Base
-import Data.Text        (Text)
 
 
 -- | Primitive evaluators for list operators.
@@ -92,7 +91,7 @@ primOpListAppend
         [PVal, PVal] fn'
  where
         fn' as0
-         | Just (XApp tag@(XRef (RPrm PrimTagList)) xs1, as1)
+         | Just (XApp (XRef (RPrm PrimTagList)) xs1, as1)
                           <- takeArgExp as0
          , Just (XApp tag@(XRef (RPrm PrimTagList)) xs2, [])
                           <- takeArgExp as1
