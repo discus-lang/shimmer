@@ -83,12 +83,12 @@ Appends an element to the front of a list. If the second argument is not a list 
 
 ``#list-snoc (#list %a %b) %c ==> #list %a %b %c``.
 
-Appends an element to the end of a list. If the second argument is not a list then stuck.
+Appends an element to the end of a list. If the first argument is not a list then stuck.
 
 
 ``#list-append (#list %a %b) (#list %c %d) ==> #list %a %b %c %d``.
 
-Appends two lists. If the arguments are not lists then stuck.
+Appends two lists. If both arguments are not lists then stuck.
 
 
 ``#list-uncons (#list %a %b %c) (\x xs. %split x xs) ==> %split %a (#list %b %c)``.
@@ -109,6 +109,22 @@ Splits a list into its last and initial elements and passes both components to a
   #nom-fresh    !         allocate a fresh nominal variable
   #nom-close    !~~       creating a closing substitution for a nominal variable
 ```
+
+``#nom-eq ?0 ?0 ==> #true``
+
+``#nom-eq ?0 ?1 ==> #false``
+
+Tests if two nominal variables are identical. If the arguments are not nominal variables then stuck.
+
+
+``#nom-fresh #unit ==> ?5``
+
+Generate a fresh nominal variable. If the argument is not ``#unit`` then stuck.
+
+
+``#nom-close ?0 %a (\x. x ?0 %b) ==> \x. x %a %b``
+
+Close a given nominal variable, substituting the second argument for all occurrences of the variable in the third argument. If the first argument is not a nominal variable then stuck.
 
 
 ### Matching
