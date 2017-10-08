@@ -266,17 +266,24 @@ pCarSimRec c
 --
 pBind   :: Config s p -> Parser s p (SnvBind s p)
 pBind c
- =  P.enterOn (pNameOfSpace SVar) ExContextBind $ \name
- -> P.alt
-        (do _       <- pPunc '='
-            x       <- pExp c
-            return  $ BindVar name 0 x)
+ = P.alt
+        (P.enterOn (pNameOfSpace SVar) ExContextBind $ \name
+         -> P.alt
+                (do _       <- pPunc '='
+                    x       <- pExp c
+                    return  $ BindVar name 0 x)
 
-        (do _       <- pPunc '^'
-            bump    <- pNat
-            _       <- pPunc '='
-            x       <- pExp c
-            return  $ BindVar name bump x)
+                (do _       <- pPunc '^'
+                    bump    <- pNat
+                    _       <- pPunc '='
+                    x       <- pExp c
+                    return  $ BindVar name bump x))
+
+        (do pPunc '?'
+            ix <- pNat
+            _  <- pPunc '='
+            x  <- pExp c
+            return $ BindNom ix x)
 
 
 -- Ups ------------------------------------------------------------------------

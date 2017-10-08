@@ -81,25 +81,30 @@ trainApply cs1 xx
         XRef (RMac _)   -> xx
         XRef (RSym _)   -> xx
         XRef (RPrm _)   -> xx
+        XRef (RNom ix)  -> trainApplyNom cs1 ix
         XVar name depth -> trainApplyVar cs1 name depth
         XSub cs2  x2    -> trainApply (trainAppend cs2 cs1) x2
         _               -> XSub cs1 xx
 
--- Apply a train onto a variable of a given name and depth.
+
+-- | Apply a train to a named variable of a given name and depth.
 trainApplyVar :: [Car s p] -> Name -> Integer -> Exp s p
 trainApplyVar cs name depth
  = case cs of
-        []
-         -> XVar name depth
+        []              -> XVar name depth
+        CSim snv : cs'  -> trainApply cs' (snvApplyVar False snv name depth)
+        CRec snv : cs'  -> trainApply cs' (snvApplyVar True  snv name depth)
+        CUps ups : cs'  -> trainApply cs' (upsApplyVar ups name depth)
 
-        CSim snv : cs'
-         -> trainApply cs' (snvApplyVar False snv name depth)
 
-        CRec snv : cs'
-         -> trainApply cs' (snvApplyVar True  snv name depth)
-
-        CUps ups : cs'
-         -> trainApply cs' (upsApplyVar ups name depth)
+-- | Apply a train to a nominal variable of a given index.
+trainApplyNom :: [Car s p] -> Integer -> Exp s p
+trainApplyNom cs ix
+ = case cs of
+        []              -> XRef (RNom ix)
+        CSim snv  : cs' -> trainApply cs' (snvApplyNom  False snv ix)
+        CRec snv  : cs' -> trainApply cs' (snvApplyNom  True  snv ix)
+        CUps _ups : cs' -> trainApply cs' (XRef (RNom ix))
 
 
 -- Car ------------------------------------------------------------------------
@@ -134,9 +139,13 @@ snvBump ns (SSnv ts)
  = SSnv $ mapMaybe (snvBump1 ns) ts
  where
         snvBump1 names (BindVar name depth x)
-         = Just
-         $ BindVar name (depth + (if elem name names then 1 else 0))
-                   (upsApply (UUps (map (\name' -> ((name', 0), 1)) names)) x)
+         = Just $ BindVar name
+                (depth + (if elem name names then 1 else 0))
+                (upsApply (UUps (map (\name' -> ((name', 0), 1)) names)) x)
+
+        snvBump1 names (BindNom ix x)
+         = Just $ BindNom ix
+                (upsApply (UUps (map (\name' -> ((name', 0), 1)) names)) x)
 
 
 -- | Wrap a train consisting of a single simultaneous substitution
@@ -168,6 +177,28 @@ snvApplyVar isRec snv@(SSnv bs) name depth
 
          |  otherwise
          -> snvApplyVar isRec (SSnv bs') name depth
+
+        BindNom{} : bs'
+         -> snvApplyVar isRec (SSnv bs') name depth
+
+
+-- | Apply a substitution to a nominal variable of the given index.
+snvApplyNom :: Bool -> Snv s p -> Integer -> Exp s p
+snvApplyNom isRec snv@(SSnv bs) ix
+ = case bs of
+        []
+         -> XRef (RNom ix)
+
+        BindVar{} : bs'
+         -> snvApplyNom isRec (SSnv bs') ix
+
+        BindNom ix' x' : bs'
+         |  ix == ix'
+         -> if isRec then XSub (CRec snv : []) x'
+                     else x'
+
+         | otherwise
+         -> snvApplyNom isRec (SSnv bs') ix
 
 
 -- Ups ------------------------------------------------------------------------

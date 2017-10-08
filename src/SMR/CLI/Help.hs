@@ -35,7 +35,7 @@ helpGrammar
  , "         |  '+' Name                       (Set reference)"
  , "         |  '%' Name                       (Symbol reference)"
  , "         |  '#' Name                       (Primitive reference)"
- , "         |  '?' Name                       (Nominal reference)"
+ , "         |  '?' Nat                        (Nominal reference)"
  , ""
  , "  Key   ::= '##tag'                        (Tag an expression)"
  , "         |  '##seq'                        (Sequence evaluation)"
@@ -52,7 +52,9 @@ helpGrammar
  , "         |  '[[' Bind,* ']]'               (Recursive substitution)"
  , "         |  '{'  Bump,* '}'                (Lifting specifier)"
  , ""
- , "  Bind  ::= Name ('^' Nat)? '=' Exp        (Substitution binding)"
+ , "  Bind  ::= Name ('^' Nat)? '=' Exp        (Variable substitution binding)"
+ , "         |  '?' Nat         '=' Exp        (Nominal  substitution binding)"
+ , ""
  , "  Bump  ::= Name ('^' Nat)? ':' Nat        (Lifting bump)"
  ]
 

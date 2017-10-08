@@ -154,6 +154,10 @@ buildSnvBind (BindVar name bump xx)
  =  B.fromText name <> "^" <> B.fromString (show bump)
  <> "=" <> buildExp CtxTop xx
 
+buildSnvBind (BindNom ix xx)
+ =  "?" <> B.fromString (show ix)
+ <> "=" <> buildExp CtxTop xx
+
 
 -- Ups ------------------------------------------------------------------------
 -- | Yield a builder for an ups.

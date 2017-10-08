@@ -96,6 +96,7 @@ data Snv s p
 
 data SnvBind s p
         = BindVar !Name !Integer !(Exp s p)
+        | BindNom !Integer       !(Exp s p)
         deriving Show
 
 

@@ -22,7 +22,7 @@ Ref   ::= '@' Name                        (Macro reference)
        |  '+' Name                        (Set reference)
        |  '%' Name                        (Symbol reference)
        |  '#' Name                        (Primitive reference)
-       |  '?' Name                        (Nominal reference)
+       |  '?' Nat                         (Nominal reference)
 
 Key   ::= '##tag'                         (Tag an expression)
        |  '##seq'                         (Sequence evaluation)
@@ -43,7 +43,10 @@ Car   ::= '['  Bind,* ']'                 (Simultaneous substitution)
        |  '[[' Bind,* ']]'                (Recursive substitution)
        |  '{'  Bump,* '}'                 (Lifting specifier)
 
-Bind  ::= Name ('^' Nat)? '=' Exp         (Substitution binding)
+Bind  ::= Name ('^' Nat)? '=' Exp         (Variable Substitution binding)
+       | '?' Nat          '=' Exp         (Nominal  Substitution binding)
+
+
 Bump  ::= Name ('^' Nat)? ':' Nat         (Lifting bump)
 ```
 
