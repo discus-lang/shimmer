@@ -15,10 +15,10 @@ primEvals :: [PrimEval s Prim w]
 primEvals
  = concat
         [ primOpsBool
-        , primOpsNom
+        , primOpsNat
         , primOpsList
-        , primOpsMatch
-        , primOpsNat ]
+        , primOpsNom
+        , primOpsMatch ]
 
 
 

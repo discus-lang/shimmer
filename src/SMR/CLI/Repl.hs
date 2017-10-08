@@ -142,8 +142,7 @@ replPrims state
          , "  #true                   boolean true"
          , "  #false                  boolean false"
          , "  #nat'NAT                natural number"
-         , "  #list                   list constructor"
-         , "" ]
+         , "  #list                   list constructor" ]
 
         HL.outputStr
          $ unlines
