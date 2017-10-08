@@ -10,7 +10,6 @@ import SMR.Core.World
 import SMR.Prim.Op.Base
 import Data.Text                (Text)
 import Data.Map                 (Map)
-import Data.Maybe
 import qualified Data.Map       as Map
 
 
@@ -121,8 +120,6 @@ step !config !world !xx
                   -> case xF of
                       XRef (RPrm primF)  -> stepAppPrm config world primF xsArgs
                       XAbs nsParam xBody -> stepAppAbs config world nsParam xBody xsArgs
-                      XKey KSeq xBody    -> stepAppSeq xBody xsArgs
-                      XKey KTag xBody    -> stepAppTag config world xBody xsArgs
 
                       -- Functional expression is inactive, but optionally
                       -- continue reducing arguments to eliminate all of
@@ -170,17 +167,6 @@ step !config !world !xx
                   -> case x1 of
                          XKey KBox x11   -> return $ Right x11
                          _               -> return $ Right x1
-
-        -- Step the body of a seq expression.
-        XKey KSeq x
-         -> do  erx <- step config world x
-                case erx of
-                 Right x'  -> return $ Right $ XKey KSeq x'
-                 Left err  -> return $ Left err
-
-        -- Tagged expressions are always done.
-        XKey KTag _x
-         -> return $ Left ResultDone
 
 
 -------------------------------------------------------------------------------
@@ -253,46 +239,6 @@ stepAppAbs !config !world !psParam !xBody !xsArgs
                  $ makeXApps
                         (snvApply False snv xBody)
                         xsArgs_remain
-
-
--------------------------------------------------------------------------------
--- | Step an application of the ##seq super prim.
-stepAppSeq
-        :: (Ord p, Show p)
-        => Exp s p -> [Exp s p]
-        -> IO (Either Result (Exp s p))
-
-stepAppSeq !xBody !xsArgs
- -- Application of a seq to an abstraction.
- -- As we can see the abstraction, build the substitution directly without
- -- going through an intermediate application.
- | xArg1 : xsArgs' <- xsArgs
- , XAbs ps11  x12  <- fromMaybe xArg1 (pushHead xArg1)
- , p1    : ps11'   <- ps11
- = do   let  n1     = nameOfParam p1
-        let snv     = snvOfNamesArgs [n1] [xBody]
-        let car     = CSim snv
-        let cars    = [car]
-        return $ Right $ makeXApps (trainApply cars $ XAbs ps11' x12) xsArgs'
-
- -- Application of a seq to something that isn't yet an abstraction.
- | otherwise
- =      return $ Right $ makeXApps (XKey KSeq xBody) xsArgs
-
-
--------------------------------------------------------------------------------
--- | Step an application of the ##tag superprim.
-stepAppTag
-        :: (Ord p, Show p)
-        => Config s p w
-        -> World w -> Exp s p -> [Exp s p]
-        -> IO (Either Result (Exp s p))
-
-stepAppTag !config !world !xBody !xsArgs
- = do   erxs <- stepFirstVal config world xsArgs
-        case erxs of
-         Left  res     -> return $ Left res
-         Right xsArgs' -> return $ Right $ makeXApps (XKey KTag xBody) xsArgs'
 
 
 -------------------------------------------------------------------------------

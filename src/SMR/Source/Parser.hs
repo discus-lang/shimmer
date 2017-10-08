@@ -125,8 +125,6 @@ pExpApp c
          <- do  nKey'   <- pNameOfSpace SKey
                 if       nKey' == Text.pack "box" then return KBox
                  else if nKey' == Text.pack "run" then return KRun
-                 else if nKey' == Text.pack "seq" then return KSeq
-                 else if nKey' == Text.pack "tag" then return KTag
                  else P.fail
 
         xArg    <- pExpAtom c

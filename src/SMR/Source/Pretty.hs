@@ -111,8 +111,6 @@ buildKey kk
  = case kk of
         KBox    -> "##box"
         KRun    -> "##run"
-        KSeq    -> "##seq"
-        KTag    -> "##tag"
 
 
 -- Train ----------------------------------------------------------------------

@@ -7,8 +7,8 @@
 Decl  ::=  '@' Name Param* '=' Exp ';'    (Macro declaration)
 ```
 
-A declaration consists of a macro name prefixed by '@', the macro parameters and
-the bound expression. All declarations end with a ';'.
+A declaration consists of a macro name prefixed by ``@``, the macro parameters and
+the bound expression. All declarations end with a ``;``.
 
 
 ### Expressions
@@ -35,7 +35,7 @@ Function applications consists of a functional expression applied to a list of a
 
 Variables consists of a name and a bump count. If the bump count is zero then it is
 elided. The bump count is used to manage name clashes during substitution, for example
-in the expression ``(\x. \x. x^1)` the variable reference ``x^1`` referes to the outer
+in the expression ``(\x. \x. x^1)`` the variable reference ``x^1`` referes to the outer
 most binder rather than the inner one, which shares the same name.
 
 Substitutions consist of a substitution train specifying the environment and lifting
@@ -66,16 +66,6 @@ Primitive references refer to pre-defined primitive names and operators, for exa
 Nominal references refer to nominal variables.
 
 
-## Keywords
-
-```
-Key   ::= '##tag'                         (Tag an expression)
-       |  '##seq'                         (Sequence evaluation)
-       |  '##box'                         (Box an expression, delaying evaluation)
-       |  '##run'                         (Run an expression, forcing  evaluation)
-```
-
-
 ## Parameters
 
 ```
@@ -84,6 +74,24 @@ Param ::= Name                            (Call-by-value parameter)
        |  '~' Name                        (Explicitly call-by-name  parameter)
 ```
 
+Function parameters are either explicitly call-by-value, indicated with a ``!``, or
+call-by-name indicated with a ``~``. If not specifier is provided the parameter
+is assumed to be call-by-value.
+
+
+## Keywords
+
+```
+Key   ::= '##box'                         (Box an expression, delaying evaluation)
+       |  '##run'                         (Run an expression, forcing  evaluation)
+```
+
+Keywords are used to control evaluation order.
+
+The ``##box`` keyword is used to delay evaluation of an expression when it is
+used as the argument of a call-by-value abstraction.
+
+The ``##run`` keyword is used to force the evaluation of a boxed expression.
 
 
 
@@ -98,7 +106,6 @@ Car   ::= '['  Bind,* ']'                 (Simultaneous substitution)
 
 Bind  ::= Name ('^' Nat)? '=' Exp         (Variable Substitution binding)
        | '?' Nat          '=' Exp         (Nominal  Substitution binding)
-
 
 Bump  ::= Name ('^' Nat)? ':' Nat         (Lifting bump)
 ```

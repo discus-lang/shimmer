@@ -59,18 +59,13 @@ data Form
 
 -- | Expression keys (super primitives)
 data Key
-        -- | Tagged expression is never evaluated.
-        = KTag
-
         -- | Delay evaluation of an expression used as the argument
         --   of a call-by-value function application.
-        | KBox
+        = KBox
 
         -- | Run a boxed expression.
         | KRun
 
-        -- | Sequence evaluation.
-        | KSeq
         deriving Show
 
 
