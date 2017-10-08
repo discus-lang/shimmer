@@ -1,4 +1,4 @@
-
+{-# LANGUAGE BangPatterns #-}
 module SMR.Core.Step
         ( Config        (..)
         , Result        (..)
@@ -19,16 +19,16 @@ import qualified Data.Map       as Map
 data Config s p
         = Config
         { -- | Reduce under lambda abstractions.
-          configUnderLambdas    :: Bool
+          configUnderLambdas    :: !Bool
 
           -- | Reduce arguments when head is not an abstraction.
-        , configHeadArgs        :: Bool
+        , configHeadArgs        :: !Bool
 
           -- | Primitive operator declarations.
-        , configPrims           :: Map p (PrimEval s p)
+        , configPrims           :: !(Map p (PrimEval s p))
 
           -- | Macro declarations.
-        , configDeclsMac        :: Map Name (Exp s p) }
+        , configDeclsMac        :: !(Map Name (Exp s p)) }
 
 
 -- | Result of evaluation.
@@ -45,7 +45,7 @@ steps   :: (Ord p, Show p)
         -> World w -> Exp s p
         -> IO (Either Text (Exp s p))
 
-steps config world xx
+steps !config !world !xx
  = do   erx <- step config world xx
         case erx of
          Left ResultDone         -> return $ Right xx
@@ -67,7 +67,7 @@ step    :: (Ord p, Show p)
         -> World w -> Exp s p
         -> IO (Either Result (Exp s p))
 
-step config world xx
+step !config !world !xx
  = case xx of
         -- Reference
         XRef ref
@@ -191,7 +191,7 @@ stepAppPrm
         -> World w -> p -> [Exp s p]
         -> IO (Either Result (Exp s p))
 
-stepAppPrm config world prim xsArgs
+stepAppPrm !config !world !prim !xsArgs
  = case Map.lookup prim (configPrims config) of
         Nothing         -> return $ Left ResultDone
         Just primEval   -> stepPrim config world primEval xsArgs
@@ -205,7 +205,7 @@ stepAppAbs
         -> World w -> [Param] -> Exp s p -> [Exp s p]
         -> IO (Either Result (Exp s p))
 
-stepAppAbs config world psParam xBody xsArgs
+stepAppAbs !config !world !psParam !xBody !xsArgs
  = do
         let arity         = length psParam
         let args          = length xsArgs
@@ -262,7 +262,7 @@ stepAppSeq
         => Exp s p -> [Exp s p]
         -> IO (Either Result (Exp s p))
 
-stepAppSeq xBody xsArgs
+stepAppSeq !xBody !xsArgs
  -- Application of a seq to an abstraction.
  -- As we can see the abstraction, build the substitution directly without
  -- going through an intermediate application.
@@ -288,7 +288,7 @@ stepAppTag
         -> World w -> Exp s p -> [Exp s p]
         -> IO (Either Result (Exp s p))
 
-stepAppTag config world xBody xsArgs
+stepAppTag !config !world !xBody !xsArgs
  = do   erxs <- stepFirstVal config world xsArgs
         case erxs of
          Left  res     -> return $ Left res
@@ -303,7 +303,7 @@ stepPrim
         -> World w -> PrimEval s p -> [Exp s p]
         -> IO (Either Result (Exp s p))
 
-stepPrim config world pe xsArgs
+stepPrim !config !world !pe !xsArgs
  | PrimEval _prim _desc csArg eval <- pe
  = let
         -- Evaluation of arguments is complete.
@@ -358,7 +358,7 @@ stepFirstVal
         -> World w -> [Exp s p]
         -> IO (Either Result [Exp s p])
 
-stepFirstVal config world xx
+stepFirstVal !config !world !xx
  = stepFirst config world xx (replicate (length xx) PVal)
 
 
@@ -369,7 +369,7 @@ stepFirst
         -> World w -> [Exp s p] -> [Form]
         -> IO (Either Result [Exp s p])
 
-stepFirst config world xx ff
+stepFirst !config !world !xx !ff
  = case (xx, ff) of
         ([], _)
          -> return $ Left ResultDone
