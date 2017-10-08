@@ -36,16 +36,15 @@ primOpListUncons
  = PrimEval
         (PrimOp "list-uncons")
         "split an element from the front of a list"
-        [PVal, PExp, PExp] fn'
+        [PVal, PExp] fn'
  where
         fn' _world as0
          | Just (XApp tag@(XRef (RPrm PrimTagList)) xx, as1)
                           <- takeArgExp as0
-         , Just (x2, as2) <- takeArgExp as1
-         , Just (x3, [])  <- takeArgExp as2
+         , Just (x2, [])  <- takeArgExp as1
          = case xx of
                 x1 : xs -> return $ Just $ XApp x2 [x1, XApp tag xs]
-                []      -> return $ Just $ x3
+                []      -> return $ Nothing
         fn' _world _
          = return $ Nothing
 
@@ -73,16 +72,15 @@ primOpListUnsnoc
  = PrimEval
         (PrimOp "list-unsnoc")
         "split an element from the end of a list"
-        [PVal, PExp, PExp] fn'
+        [PVal, PExp] fn'
  where
         fn' _world as0
          | Just (XApp tag@(XRef (RPrm PrimTagList)) xx, as1)
                           <- takeArgExp as0
-         , Just (x2, as2) <- takeArgExp as1
-         , Just (x3, [])  <- takeArgExp as2
+         , Just (x2, [])  <- takeArgExp as1
          = case reverse xx of
-                x1 : xs -> return $ Just $ XApp x2 [x1, XApp tag (reverse xs)]
-                []      -> return $Just $ x3
+                x1 : xs -> return $ Just $ XApp x2 [XApp tag (reverse xs), x1]
+                []      -> return $ Nothing
 
         fn' _world _
          = return $ Nothing

@@ -83,8 +83,13 @@ List literals are written like ``#list %a %b``. Note that the ``#list`` construc
 ``#list-snoc (#list %a %b) %c ==> #list %a %b %c``.
 
 ``#list-append`` appends two lists.
-``#list-append (#list %a %b) (#list %c %d) ==> #list %a %b %c %d``
+``#list-append (#list %a %b) (#list %c %d) ==> #list %a %b %c %d``.
 
+``#list-uncons`` splits a list into its head and tail elements and passes both components to a functional argument. If the list is empty then computation is stuck.
+``#list-uncons (#list %a %b %c) (\x xs. %split x xs) ==> %split %a (#list %b %c)``.
+
+``#list-uncons`` splits a list into its last and initial elements and passes both components to a functional argument. If the list is empty then computation is stuck.
+``#list-unsnoc (#list %a %b %c) (\xs x. %split xs x) ==> %split (#list %a %b) %c``.
 
 
 
