@@ -78,28 +78,26 @@ List literals are written like ``#list %a %b``. Note that the ``#list`` construc
 
 ``#list-cons %a (#list %b %c) ==> #list %a %b %c``.
 
-Appends an element to the front of a list.
+Appends an element to the front of a list. If the second argument is not a list then stuck.
 
 
 ``#list-snoc (#list %a %b) %c ==> #list %a %b %c``.
 
-Appends an element to the end of a list.
+Appends an element to the end of a list. If the second argument is not a list then stuck.
 
 
 ``#list-append (#list %a %b) (#list %c %d) ==> #list %a %b %c %d``.
 
-Appends two lists.
+Appends two lists. If the arguments are not lists then stuck.
 
 
 ``#list-uncons (#list %a %b %c) (\x xs. %split x xs) ==> %split %a (#list %b %c)``.
 
-Splits a list into its head and tail elements and passes both components to a functional argument. If the list is empty then computation is stuck.
-
+Splits a list into its head and tail elements and passes both components to a functional argument. If the first argument is not a non-empty list then stuck.
 
 ``#list-unsnoc (#list %a %b %c) (\xs x. %split xs x) ==> %split (#list %a %b) %c``.
 
-Splits a list into its last and initial elements and passes both components to a functional argument. If the list is empty then computation is stuck.
-
+Splits a list into its last and initial elements and passes both components to a functional argument. If the first argument is not a non-empty list then stuck.
 
 
 ### Nominal
