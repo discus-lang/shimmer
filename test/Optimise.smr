@@ -1,0 +1,26 @@
+
+
+@pair-fst xx
+ = #list-uncons xx (\x xs. x);
+
+
+
+-- @match-let (%let (\x. xBind) xBody) fCont
+--  => fCont xNom xBind xBody
+@match-let xExp xFail fCont
+ = #match-app   xExp %fail (\xLet xBind xVarBody.
+   #if (#not (#sym-eq xLet %let)) xFail (
+   #match-abs1 xVarBody %fail (\zE1 xE2.
+   fCont (@pair-fst zE1) xBind xE2)));
+
+
+@term y
+ = %let (%let %e1 (\y. %e2 y)) (\x. %e3 x y);
+
+@rewrite-let ee
+ = @match-let ee     %fail (\nNom1 eBind1 eBody1.
+   @match-let eBind1 %fail (\nNom2 eBind2 eBody2.
+   %let eBind2 (\x2.
+   %let (#nom-close nNom1 x2 eBody1) (\x1.
+   #nom-close nNom2 x1 eBody2))));
+
