@@ -1,7 +1,7 @@
 
 
 @list-head xx
- = #list-uncons xx (\x xs. x) %fail;
+ = #list-uncons xx (\x xs. x);
 
 @swap-params x
  = #match-abs1 x @swap-params-1 %fail;

@@ -138,30 +138,30 @@ Close a nominal variable, substituting the second argument for all occurrences o
   #match-abs1   !~~       match the first parameter of an abstraction
 ```
 
-``#match-sym %a %yes %no ==> %yes %a``
+``#match-sym %a %no %yes ==> %yes %a``
 
-``#match-sym #nat'5 %yes %no ==> %no``
+``#match-sym #nat'5 %no %yes ==> %no``
 
 Test if the first argument is a symbol. If so, apply it to the second argument, otherwise return the third argument.
 
 
-``#match-app (%a %b %c) %yes %no ==> %yes %a %b %c``
+``#match-app (%a %b %c) %no %yes ==> %yes %a %b %c``
 
-``#match-app %a %yes %no ==> %no``
+``#match-app %a %no %yes ==> %no``
 
 Test if the first argument is an application. If so, apply the functional expression and the arguments separately to the second argument, otherwise return the third argument.
 
 
-``#match-abs (\x ~y. %body x y) %yes %no ==> %yes (#list (#list ?0 #true) (#list ?1 #false)) (%body ?0 ?1)``
+``#match-abs (\x ~y. %body x y) %no %yes ==> %yes (#list (#list ?0 #true) (#list ?1 #false)) (%body ?0 ?1)``
 
-``#match-abs %a %yes %no ==> %no``
+``#match-abs %a %no %yes ==> %no``
 
 Test if the first argument is an abstraction. If so allocate fresh nominal variables for each parameter, and apply the second argument to two new arguments describing the abstraction. The first new argument is list of pairs consisting of the fresh nominal variables and a flag indicating whether the parameter was call-by-value (``#true``)  or call-by-name (``#false``). The second new argument is the body of the abstraction, with the nominal variables substituted for the parameter variables. If the first argument is not an abstraction then return the third argument.
 
 
-``#match-abs1 (\x ~y. %body x y) %yes %no ==> %yes (#list ?0 #true) (\~y.%body ?0 y)``
+``#match-abs1 (\x ~y. %body x y) %no %yes ==> %yes (#list ?0 #true) (\~y.%body ?0 y)``
 
-``#match-abs1 %a %yes %no ==> %no``
+``#match-abs1 %a %no %yes ==> %no``
 
 Like ``#match-abs`` above, but only split the first parameter from the abstraction.
 

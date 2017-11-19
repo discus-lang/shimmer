@@ -31,8 +31,8 @@ primOpMatchSym
          , Just (x3, [])  <- takeArgExp as2
          = case x1 of
                 XRef (RSym _s1)
-                  -> return $ Just $ XApp x2 [x1]
-                _ -> return $ Just $ x3
+                  -> return $ Just $ XApp x3 [x1]
+                _ -> return $ Just $ x2
 
         fn' _world _
          = return $ Nothing
@@ -52,9 +52,12 @@ primOpMatchApp
          , Just (x2, as2) <- takeArgExp as1
          , Just (x3, [])  <- takeArgExp as2
          = case x1 of
-                XApp x11 xs12
-                  -> return $ Just $ XApp x2 (x11 : xs12)
-                _ -> return $ Just $ x3
+                XRef{}          -> return $ Nothing
+                XKey{}          -> return $ Nothing
+                XApp x11 xs12   -> return $ Just $ XApp x3 (x11 : xs12)
+                XVar{}          -> return $ Nothing
+                XAbs{}          -> return $ Just x2
+                XSub{}          -> return $ Nothing
 
         fn' _world _
          = return $ Nothing
@@ -74,8 +77,8 @@ primOpMatchAbs
          , Just (x2, as2) <- takeArgExp as1
          , Just (x3, [])  <- takeArgExp as2
          = case x1 of
-            XAbs ps11 x12 -> fnAbs world x2 ps11 x12
-            _             -> return $ Just $ x3
+            XAbs ps11 x12 -> fnAbs world x3 ps11 x12
+            _             -> return $ Just $ x2
 
         fn' _world _
          = return Nothing
@@ -122,8 +125,12 @@ primOpMatchAbs1
          , Just (x2, as2) <- takeArgExp as1
          , Just (x3, [])  <- takeArgExp as2
          = case x1 of
-            XAbs ps11 x12 -> fnAbs world x2 ps11 x12
-            _             -> return $ Just $ x3
+            XRef{}        -> return $ Nothing
+            XKey{}        -> return $ Nothing
+            XApp{}        -> return $ Just x2
+            XVar{}        -> return $ Nothing
+            XAbs ps11 x12 -> fnAbs world x3 ps11 x12
+            XSub{}        -> return $ Nothing
 
         fn' _world _
          = return Nothing
