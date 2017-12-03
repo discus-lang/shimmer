@@ -18,9 +18,9 @@
  = %let (%let %e1 (\y. %e2 y)) (\x. %e3 x y);
 
 @rewrite-let ee
- = @match-let ee     %fail (\nNom1 eBind1 eBody1.
-   @match-let eBind1 %fail (\nNom2 eBind2 eBody2.
-   %let eBind2 (\x2.
-   %let (#nom-close nNom1 x2 eBody1) (\x1.
-   #nom-close nNom2 x1 eBody2))));
+ = @match-let ee     %fail $ \nNom1 eBind1 eBody1.
+   @match-let eBind1 %fail $ \nNom2 eBind2 eBody2.
+   %let eBind2 $ \x2.
+   %let (#nom-close nNom1 x2 eBody1) $ \x1.
+   #nom-close nNom2 x1 eBody2;
 
