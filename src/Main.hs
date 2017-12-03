@@ -8,6 +8,7 @@ import qualified SMR.CLI.Repl                   as Repl
 import qualified SMR.Source.Parser              as Source
 import qualified SMR.Source.Lexer               as Source
 import qualified SMR.Source.Pretty              as Source
+import qualified SMR.Codec.Size                 as Codec
 import qualified System.Environment             as System
 import qualified Data.Text.Lazy.IO              as TL
 import qualified Data.Text.Lazy.Builder         as BL

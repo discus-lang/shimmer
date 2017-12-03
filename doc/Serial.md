@@ -1,20 +1,14 @@
 
 ## Serialized Format
 
-File    ::= '53' '4d' '52' '31' Seq[Decl]       (Shimmer File: "SMR1" in ASCII, then decls)
-
-Decl    ::= (dmac)  '01' Name Exp               (Macro declaration)
-         |  (dset)  '02' Name Exp               (Set declaration)
-
 Seq[A]  ::= (seq8)  'f1' Word8  A*              ( 8-bit count then sequence of A things)
          |  (seq16) 'f2' Word16 A*              (16-bit count then sequence of A things)
          |  (seq32) 'f3' Word32 A*              (32-bit count then sequence of A things)
 
-Name    ::= Seq[Word8]                          (Name)
+File    ::= '53' '4d' '52' '31' Seq[Decl]       (Shimmer File: "SMR1" in ASCII, then decls)
 
-Bump    ::= Nat16                               (Bump counter)
-
-Nom     ::= Nat32                               (Nominal atom)
+Decl    ::= (dmac)  '01' Name Exp               (Macro declaration)
+         |  (dset)  '02' Name Exp               (Set declaration)
 
 Ref     ::= (sym)   '11' Seq[Word8]             (Symbol reference)
          |  (prm)   '12' Seq[Word8]             (Primitive reference)
@@ -44,3 +38,8 @@ SnvBind ::= (svar)  '3a' Name Bump Exp          (Substitute for variable)
 
 UpsBump ::= (up)    '3c' Name Bump Bump         (Lifting specifier)
 
+Name    ::= Seq[Word8]                          (Name)
+
+Bump    ::= Nat16                               (Bump counter)
+
+Nom     ::= Nat32                               (Nominal atom)
