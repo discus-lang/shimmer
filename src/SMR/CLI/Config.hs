@@ -13,6 +13,9 @@ data Mode
 
         -- Start the REPL with the given file.
         | ModeREPL  (Maybe FilePath)
+
+        -- Convert a file from one format to another.
+        | ModeConvert FilePath FilePath
         deriving Show
 
 
@@ -37,7 +40,11 @@ parseArgs [] config
 parseArgs ss config
  | "-check" : filePath : ssRest <- ss
  = parseArgs ssRest
- $ config { configMode  = ModeCheck filePath }
+ $ config { configMode = ModeCheck filePath }
+
+ | "-convert" : fileSource : fileDest : ssRest <- ss
+ = parseArgs ssRest
+ $ config { configMode = ModeConvert fileSource fileDest }
 
  | "-help"  : _ssRest <- ss
  = do   putStr usage
@@ -61,8 +68,8 @@ parseArgs ss config
 usage :: String
 usage
  = unlines
- [ "shimmer                    Start the REPL with no soure file."
- , "shimmer FILE.smr           Start the REPL with the given file."
- , "shimmer -help              Display this help page."
- , "shimmer -check FILE.smr    Check that a source file is well formed." ]
-
+ [ "shimmer                       Start the REPL with no soure file."
+ , "shimmer FILE.smr              Start the REPL with the given file."
+ , "shimmer -help                 Display this help page."
+ , "shimmer -check FILE.smr       Check that a source file is well formed."
+ , "shimmer -convert FILE1 FILE2  Convert file from one format to another." ]

@@ -1,45 +1,66 @@
 
 ## Serialized Format
 
-Seq[A]  ::= (seq8)  'f1' Word8  A*              ( 8-bit count then sequence of A things)
-         |  (seq16) 'f2' Word16 A*              (16-bit count then sequence of A things)
-         |  (seq32) 'f3' Word32 A*              (32-bit count then sequence of A things)
-
 File    ::= '53' '4d' '52' '31' Seq[Decl]       (Shimmer File: "SMR1" in ASCII, then decls)
 
-Decl    ::= (dmac)  '01' Name Exp               (Macro declaration)
-         |  (dset)  '02' Name Exp               (Set declaration)
+Decl    ::= (dmac)    'a1' Name Exp             (Macro declaration)
+         |  (dset)    'a2' Name Exp             (Set declaration)
 
-Ref     ::= (sym)   '11' Seq[Word8]             (Symbol reference)
-         |  (prm)   '12' Seq[Word8]             (Primitive reference)
-         |  (mac)   '13' Seq[Word8]             (Macro reference)
-         |  (set)   '14' Seq[Word8]             (Set reference)
-         |  (nom)   '15' Nom                    (Nominal reference)
+Exp     ::= (ref)     'b1' Ref                  (External reference)
+         |  (key)     'b2' Key Exp              (Keyword  application)
+         |  (app)     'b3' Exp Seq[Exp]         (Function application)
+         |  (var)     'b4' Name Bump            (Variable with lifting specifier)
+         |  (abs)     'b5' Seq[Param] Exp       (Function abstraction)
+         |  (sub)     'b6' Seq[Car] Exp         (Substitution train)
 
-Exp     ::= (ref)   '21' Ref                    (External reference)
-         |  (key)   '22' Key Exp                (Keyword  application)
-         |  (app)   '23' Exp Seq[Exp]           (Function application)
-         |  (var)   '24' Name Bump              (Variable with lifting specifier)
-         |  (abs)   '25' Seq[Param] Exp         (Function abstraction)
-         |  (sub)   '26' Seq[Car] Exp           (Substitution train)
+Key     ::= (box)     'ba'                      (Box keyword)
+         |  (run)     'bb'                      (Run keyword)
 
-Key     ::= (box)   '2a'                        (Box keyword)
-         |  (run)   '2b'                        (Run keyword)
+Param   ::= (pvl)     'bc' Name                 (call-by-value parameter)
+         |  (pna)     'bd' Name                 (call-by-name  parameter)
 
-Param   ::= (pvl)   '2c' Name                   (call-by-value parameter)
-         |  (pna)   '2d' Name                   (call-by-name  parameter)
+Car     ::= (csim)    'c1' Seq[SnvBind]         (Simultaneous substitution)
+         |  (crec)    'c2' Seq[SnvBind]         (Recursive substitution)
+         |  (cups)    'c3' Seq[UpsBump]         (Lifting specifiers)
 
-Car     ::= (csim)  '31' Seq[SnvBind]           (Simultaneous substitution)
-         |  (crec)  '32' Seq[SnvBind]           (Recursive substitution)
-         |  (cups)  '33' Seq[UpsBump]           (Lifting specifiers)
+SnvBind ::= (svar)    'ca' Name Bump Exp        (Substitute for variable)
+         |  (snom)    'cb' Nom Exp              (Substitute for nominal reference)
 
-SnvBind ::= (svar)  '3a' Name Bump Exp          (Substitute for variable)
-         |  (snom)  '3b' Nom Exp                (Substitute for nominal reference)
+UpsBump ::= (up)      'cc' Name Bump Bump       (Lifting specifier)
 
-UpsBump ::= (up)    '3c' Name Bump Bump         (Lifting specifier)
+Ref     ::= (sym)     'd1' Seq[Word8]           (Symbol reference)
+         |  (prm)     'd2' Seq[Word8]           (Primitive reference)
+         |  (mac)     'd3' Seq[Word8]           (Macro reference)
+         |  (set)     'd4' Seq[Word8]           (Set reference)
+         |  (nom)     'd5' Nom                  (Nominal reference)
+
+Prim    ::= (unit)    'da'
+         |  (true)    'db'
+         |  (false)   'dc'
+         |  (text)    'df' Name
+
+         |  (word8)   'e1' Word8
+         |  (word16)  'e2' Word16
+         |  (word32)  'e3' Word32
+         |  (word64)  'e4' Word64
+
+         |  (int8)    'e5' Int8
+         |  (int16)   'e6' Int16
+         |  (int32)   'e7' Int32
+         |  (int64)   'e8' Int64
+
+         |  (float32) 'ea' Float32
+         |  (float64) 'eb' Float64
+
+         |  (words)   'ef' Name Seq[Word8]
+
+
+Seq[A]  ::= (seq8)    'f1' Word8  A*            ( 8-bit count then sequence of A things)
+         |  (seq16)   'f2' Word16 A*            (16-bit count then sequence of A things)
+         |  (seq32)   'f3' Word32 A*            (32-bit count then sequence of A things)
 
 Name    ::= Seq[Word8]                          (Name)
 
-Bump    ::= Nat16                               (Bump counter)
+Bump    ::= Word16                              (Bump counter)
 
-Nom     ::= Nat32                               (Nominal atom)
+Nom     ::= Word32                              (Nominal atom)

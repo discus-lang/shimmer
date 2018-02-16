@@ -7,49 +7,30 @@ module SMR.Codec.Size
         , sizeOfCar,  sizeOfSnvBind, sizeOfUpsBump
         , sizeOfName, sizeOfBump,    sizeOfNom)
 where
-import qualified Data.Text.Foreign      as T
 import SMR.Core.Exp
+import SMR.Prim.Op.Base
+import qualified Data.Text.Foreign      as T
+import qualified Data.Text              as T
 
 
--- | Compute the serialized size of a sequence of things.
-sizeOfSeq :: (a -> Int) -> [a] -> Int
-sizeOfSeq fs xs
- = result
- where  n       = length xs
-        result
-         | n < 2^8      = 1 + sum (map fs xs)
-         | n < 2^16     = 2 + sum (map fs xs)
-         | n < 2^32     = 4 + sum (map fs xs)
-         | otherwise    = error "shimmer.sizeOfSeq: sequence too long to serialize."
-
-
+---------------------------------------------------------------------------------------------------
 -- | Compute the size of a serialized shimmer file containing the given decls.
-sizeOfFile :: [Decl Text Text] -> Int
+sizeOfFile :: [Decl Text Prim] -> Int
 sizeOfFile decls
  = 4 + sizeOfSeq sizeOfDecl decls
 
 
 -- | Compute the serialized size of a given declaration.
-sizeOfDecl :: Decl Text Text -> Int
+sizeOfDecl :: Decl Text Prim -> Int
 sizeOfDecl dd
  = case dd of
         DeclMac n x     -> 1 + sizeOfName n + sizeOfExp x
         DeclSet n x     -> 1 + sizeOfName n + sizeOfExp x
 
 
--- | Compute the serialized size of the given reference.
-sizeOfRef :: Ref Text Text -> Int
-sizeOfRef rr
- = case rr of
-        RSym n          -> 1 + sizeOfName n
-        RPrm n          -> 1 + sizeOfName n
-        RMac n          -> 1 + sizeOfName n
-        RSet n          -> 1 + sizeOfName n
-        RNom n          -> 1 + sizeOfNom  n
-
-
+---------------------------------------------------------------------------------------------------
 -- | Compute the serialized size of the given expression.
-sizeOfExp :: Exp Text Text -> Int
+sizeOfExp :: Exp Text Prim -> Int
 sizeOfExp xx
  = case xx of
         XRef ref        -> 1 + sizeOfRef ref
@@ -67,7 +48,7 @@ sizeOfParam (PParam n _form)
 
 
 -- | Compute the serialized size of a substitution car.
-sizeOfCar :: Car Text Text -> Int
+sizeOfCar :: Car Text Prim -> Int
 sizeOfCar cc
  = case cc of
         CSim (SSnv snv) -> 1 + sizeOfSeq sizeOfSnvBind snv
@@ -76,7 +57,7 @@ sizeOfCar cc
 
 
 -- | Compute the serialized size of a substitution bind.
-sizeOfSnvBind :: SnvBind Text Text -> Int
+sizeOfSnvBind :: SnvBind Text Prim -> Int
 sizeOfSnvBind sb
  = case sb of
         BindVar n i x   -> 1 + sizeOfName n + sizeOfBump i + sizeOfExp x
@@ -90,15 +71,39 @@ sizeOfUpsBump ub
         ((n, d), i)     -> 1 + sizeOfName n + sizeOfBump d + sizeOfBump i
 
 
+---------------------------------------------------------------------------------------------------
+-- | Compute the serialized size of the given reference.
+sizeOfRef :: Ref Text Prim -> Int
+sizeOfRef rr
+ = case rr of
+        RSym n          -> 1 + sizeOfName n
+        RPrm p          -> 1 + sizeOfPrim p
+        RMac n          -> 1 + sizeOfName n
+        RSet n          -> 1 + sizeOfName n
+        RNom n          -> 1 + sizeOfNom  n
+
+
+sizeOfPrim :: Prim -> Int
+sizeOfPrim pp
+ = case pp of
+        PrimTagUnit     -> 1
+        PrimLitBool _   -> 1
+        PrimOp tx       -> 1 + sizeOfName tx
+
+        PrimLitNat _    -> 1 + sizeOfName (T.pack "nat")
+                        +  sizeOfSeq (const 1) (replicate 8 0)
+
+
+---------------------------------------------------------------------------------------------------
 -- | Compute the serialized size of a text string.
 sizeOfName :: Text -> Int
 sizeOfName tt
  = result
- where  n       = T.lengthWord16 tt * 2
+ where  n       = T.lengthWord16 tt
         result
-         | n < 2^8      = 1 + n
-         | n < 2^16     = 2 + n
-         | n < 2^32     = 4 + n
+         | n < 2^8      = 1 + 1 + n
+         | n < 2^16     = 1 + 2 + n
+         | n < 2^32     = 1 + 4 + n
          | otherwise    = error "shimmer.sizeOfName: name too long to serialize."
 
 
@@ -110,4 +115,16 @@ sizeOfBump _ = 2
 -- | Compute the serialized size of a nominal atom.
 sizeOfNom  :: Integer -> Int
 sizeOfNom i  = 4
+
+
+-- | Compute the serialized size of a sequence of things.
+sizeOfSeq :: (a -> Int) -> [a] -> Int
+sizeOfSeq fs xs
+ = result
+ where  n       = length xs
+        result
+         | n < 2^8      = 1 + 1 + sum (map fs xs)
+         | n < 2^16     = 1 + 2 + sum (map fs xs)
+         | n < 2^32     = 1 + 4 + sum (map fs xs)
+         | otherwise    = error "shimmer.sizeOfSeq: sequence too long to serialize."
 
