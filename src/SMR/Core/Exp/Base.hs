@@ -24,8 +24,8 @@ data Exp s p
         -- | Application of a function expression to an argument.
         | XApp  !(Exp s p) ![Exp s p]
 
-        -- | Variable name with a bump counter.
-        | XVar  !Name !Bump
+        -- | Variable name with a depth counter.
+        | XVar  !Name !Depth
 
         -- | Abstraction with a list of parameters and a body expression.
         | XAbs  ![Param] !(Exp s p)
@@ -90,8 +90,8 @@ data Snv s p
         deriving Show
 
 data SnvBind s p
-        = BindVar !Name !Bump !(Exp s p)
-        | BindNom !Nom        !(Exp s p)
+        = BindVar !Name !Depth !(Exp s p)
+        | BindNom !Nom         !(Exp s p)
         deriving Show
 
 
@@ -101,11 +101,19 @@ data Ups
         = UUps ![UpsBump]
         deriving Show
 
+
+-- | Indicates how to bump the index on a variable.
 type UpsBump
         = ((Name, Depth), Bump)
 
+
+-- | Binding depth indicator.
 type Depth = Integer
+
+
+-- | Bump index indicator.
 type Bump  = Integer
+
 
 -- | A reference to some external thing.
 data Ref s p
