@@ -3,11 +3,11 @@
 module SMR.Codec.Poke
         ( pokeFileDecls
         , pokeDecl
-        , pokeExp, pokeKey,      pokeParam
-        , pokeCar, pokeSnvBind,  pokeUpsBump
+        , pokeExp,   pokeKey,      pokeParam
+        , pokeCar,   pokeSnvBind,  pokeUpsBump
         , pokeRef
-        , pokeName,  pokeBump,   pokeNom
-        , pokeWord8, pokeWord16, pokeWord32)
+        , pokeName,  pokeBump,     pokeNom
+        , pokeWord8, pokeWord16,   pokeWord32,  pokeWord64)
 where
 import SMR.Core.Exp
 import SMR.Prim.Op.Base
@@ -34,7 +34,7 @@ type Poke a = a -> Ptr Word8 -> IO (Ptr Word8)
 
 
 ---------------------------------------------------------------------------------------------------
--- | Poke a list of Decls into memory, including the SMR file header.
+-- | Poke a list of `Decl` into memory, including the SMR file header.
 pokeFileDecls :: Poke [Decl Text Prim]
 pokeFileDecls ds
         =   pokeWord8 0x53              -- 'S'
@@ -42,9 +42,9 @@ pokeFileDecls ds
         >=> pokeWord8 0x52              -- 'R'
         >=> pokeWord8 0x31              -- '1'
         >=> pokeList  pokeDecl ds
+{-# NOINLINE pokeFileDecls #-}
 
 
----------------------------------------------------------------------------------------------------
 -- | Poke a `Decl` into memory.
 pokeDecl :: Poke (Decl Text Prim)
 pokeDecl xx
@@ -54,6 +54,7 @@ pokeDecl xx
 
         DeclSet name x
          ->     pokeWord8 0xa2 >=> pokeText name >=> pokeExp x
+{-# NOINLINE pokeDecl #-}
 
 
 ---------------------------------------------------------------------------------------------------
@@ -78,6 +79,7 @@ pokeExp xx
 
         XSub cs x
          ->     pokeWord8 0xb6 >=> pokeList pokeCar cs >=> pokeExp x
+{-# NOINLINE pokeExp #-}
 
 
 -- | Poke a `Key` into memory.
@@ -86,6 +88,7 @@ pokeKey key
  = case key of
         KBox -> pokeWord8 0xba
         KRun -> pokeWord8 0xbb
+{-# INLINE pokeKey #-}
 
 
 -- | Poke a `Param` into memory.
@@ -135,7 +138,7 @@ pokeUpsBump ((n, d), i)
 
 
 ---------------------------------------------------------------------------------------------------
--- | Poke a Ref into memory.
+-- | Poke a `Ref` into memory.
 pokeRef :: Poke (Ref Text Prim)
 pokeRef !r
  = case r of
@@ -148,13 +151,14 @@ pokeRef !r
 
 
 ---------------------------------------------------------------------------------------------------
+-- | Peek a `Name` from memory.
 pokeName :: Poke Name
 pokeName !p n
  =      pokeText p n
 {-# INLINE pokeName #-}
 
 
--- | Poke a bump counter into memory.
+-- | Poke a `Bump` into memory.
 pokeBump :: Poke Integer
 pokeBump !n !p
  = if n <= 2^16 then
@@ -163,7 +167,7 @@ pokeBump !n !p
 {-# NOINLINE pokeBump #-}
 
 
--- | Poke a Nom into memory.
+-- | Poke a `Nom` into memory.
 pokeNom  :: Poke Integer
 pokeNom !n !p
  = if n <= 2^28 then
@@ -215,8 +219,7 @@ pokeList pokeA ls
 
         else error "shimmer.pokeList: list too long."
 
- where
-        go [] !p0 = return p0
+ where  go [] !p0 = return p0
         go (x : xs) !p0
          = do   p1 <- pokeA x p0
                 go xs p1
@@ -258,7 +261,7 @@ pokeText !tx !p0
 
 
 ---------------------------------------------------------------------------------------------------
--- | Poke a Word16 into memory.
+-- | Poke a Word8 into memory.
 pokeWord8 :: Poke Word8
 pokeWord8 w p
  = do   F.poke p w
@@ -266,22 +269,57 @@ pokeWord8 w p
 {-# INLINE pokeWord8 #-}
 
 
--- | Poke a Word16 into memory.
+-- | Poke a Word16 into memory, in network byte order.
 pokeWord16 :: Poke Word16
 pokeWord16 w p
- = do   F.pokeByteOff p 0 (fromIntegral $ (w .&. 0xff00)    `shiftR` 8     :: Word8)
-        F.pokeByteOff p 1 (fromIntegral $ (w .&. 0x00ff)                   :: Word8)
+ = do   poke8 p 0 $ from16 $ (w .&. 0xff00) `shiftR` 8
+        poke8 p 1 $ from16 $ (w .&. 0x00ff)
         return (F.plusPtr p 2)
 {-# INLINE pokeWord16 #-}
 
 
--- | Poke a Word32 into memory.
+-- | Poke a Word32 into memory, in network byte order.
 pokeWord32 :: Poke Word32
 pokeWord32 w p
- = do   F.pokeByteOff p 0 ((fromIntegral $ (w .&. 0xff000000) `shiftR` 24) :: Word8)
-        F.pokeByteOff p 1 ((fromIntegral $ (w .&. 0x00ff0000) `shiftR` 16) :: Word8)
-        F.pokeByteOff p 2 ((fromIntegral $ (w .&. 0x0000ff00) `shiftR`  8) :: Word8)
-        F.pokeByteOff p 3 ((fromIntegral $ (w .&. 0x000000ff)              :: Word8))
+ = do   poke8 p 0 $ from32 $ (w .&. 0xff000000) `shiftR` 24
+        poke8 p 1 $ from32 $ (w .&. 0x00ff0000) `shiftR` 16
+        poke8 p 2 $ from32 $ (w .&. 0x0000ff00) `shiftR`  8
+        poke8 p 3 $ from32 $ (w .&. 0x000000ff)
         return (F.plusPtr p 4)
 {-# INLINE pokeWord32 #-}
+
+
+-- | Poke a Word32 into memory, in network byte order.
+pokeWord64 :: Poke Word64
+pokeWord64 w p
+ = do   poke8 p 0 $ from64 $ (w .&. 0xff00000000000000) `shiftR` 56
+        poke8 p 1 $ from64 $ (w .&. 0x00ff000000000000) `shiftR` 48
+        poke8 p 2 $ from64 $ (w .&. 0x0000ff0000000000) `shiftR` 40
+        poke8 p 3 $ from64 $ (w .&. 0x000000ff00000000) `shiftR` 32
+        poke8 p 4 $ from64 $ (w .&. 0x00000000ff000000) `shiftR` 24
+        poke8 p 5 $ from64 $ (w .&. 0x0000000000ff0000) `shiftR` 16
+        poke8 p 6 $ from64 $ (w .&. 0x000000000000ff00) `shiftR`  8
+        poke8 p 7 $ from64 $ (w .&. 0x00000000000000ff)
+        return (F.plusPtr p 8)
+{-# INLINE pokeWord64 #-}
+
+
+from16 :: Word16 -> Word8
+from16 = fromIntegral
+{-# INLINE from16 #-}
+
+
+from32 :: Word32 -> Word8
+from32 = fromIntegral
+{-# INLINE from32 #-}
+
+
+from64 :: Word64 -> Word8
+from64 = fromIntegral
+{-# INLINE from64 #-}
+
+
+poke8 :: Ptr a -> Int -> Word8 -> IO ()
+poke8 p i w = F.pokeByteOff p i w
+{-# INLINE poke8 #-}
 

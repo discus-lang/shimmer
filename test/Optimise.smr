@@ -1,9 +1,6 @@
 
-
 @pair-fst xx
  = #list-uncons xx (\x xs. x);
-
-
 
 -- @match-let (%let (\x. xBind) xBody) fCont
 --  => fCont xNom xBind xBody
@@ -12,7 +9,6 @@
    #if (#not (#sym-eq xLet %let)) xFail (
    #match-abs1 xVarBody %fail (\zE1 xE2.
    fCont (@pair-fst zE1) xBind xE2)));
-
 
 @term y
  = %let (%let %e1 (\y. %e2 y)) (\x. %e3 x y);

@@ -39,6 +39,7 @@ library
 
         SMR.Codec.Size
         SMR.Codec.Poke
+        SMR.Codec.Peek
 
  other-modules:
         SMR.Core.Exp.Base
