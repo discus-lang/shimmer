@@ -2,6 +2,7 @@
 module SMR.CLI.Repl where
 import SMR.Core.Exp
 import qualified SMR.CLI.Help                   as Help
+import qualified SMR.CLI.Driver.Load            as Driver
 import qualified SMR.Core.Step                  as Step
 import qualified SMR.Core.World                 as World
 import qualified SMR.Prim.Name                  as Prim
@@ -197,35 +198,11 @@ replReload :: RState -> HL.InputT IO ()
 replReload state
  = do
         decls   <- liftIO
-                $  fmap concat $ mapM (loadDecls state)
+                $  fmap concat $ mapM Driver.runLoadFileDecls
                 $  stateFiles state
 
         replLoop (state
                 { stateDecls    = decls })
-
-
-loadDecls :: RState -> FilePath -> IO [RDecl]
-loadDecls _state path
- = do
-        let config
-                = Source.Config
-                { Source.configReadSym  = Just
-                , Source.configReadPrm  = Prim.readPrim Prim.primOpTextNames }
-
-        str     <- readFile path
-        let (ts, _loc, _csRest)
-                = Source.lexTokens (Source.L 1 1) str
-
-        case Source.parseDecls config ts of
-           Left err
-            -> do  liftIO
-                        $ putStrLn
-                        $ "parse error\n"
-                        ++ Source.pprParseError err
-                   return []
-
-           Right decls
-            -> return decls
 
 
 -------------------------------------------------------------------------------

@@ -1,17 +1,12 @@
 
 module Main where
-import qualified SMR.Core.World                 as World
-import qualified SMR.Prim.Op                    as Prim
-import qualified SMR.Prim.Name                  as Prim
 import qualified SMR.CLI.Config                 as Config
 import qualified SMR.CLI.Repl                   as Repl
-import qualified SMR.Source.Parser              as Source
-import qualified SMR.Source.Lexer               as Source
+import qualified SMR.CLI.Driver.Load            as Driver
+import qualified SMR.Core.World                 as World
 import qualified SMR.Source.Pretty              as Source
 import qualified SMR.Codec.Size                 as Codec
 import qualified SMR.Codec.Poke                 as Codec
-import SMR.Core.Exp                             (Decl)
-import SMR.Prim.Op.Base                         (Prim)
 
 import qualified Foreign.Marshal.Alloc          as Foreign
 
@@ -21,8 +16,6 @@ import qualified System.IO                      as System
 import qualified Data.Text.Lazy.IO              as TL
 import qualified Data.Text.Lazy.Builder         as BL
 import qualified Data.Maybe                     as Maybe
-
-import Data.Text                                (Text)
 
 
 -------------------------------------------------------------------------------
@@ -48,28 +41,11 @@ main
 -------------------------------------------------------------------------------
 runCheck :: FilePath -> IO ()
 runCheck path
- = do   decls   <- runLoadFile path
+ = do   decls   <- Driver.runLoadFileDecls path
         TL.putStr
                 $ BL.toLazyText
                 $ mconcat
                 $ map Source.buildDecl decls
-
-
-runLoadFile :: FilePath -> IO [Decl Text Prim]
-runLoadFile path
- = do   str     <- readFile path
-
-        let (ts, _loc, _csRest)
-                = Source.lexTokens (Source.L 1 1) str
-
-        let config
-                = Source.Config
-                { Source.configReadSym  = Just
-                , Source.configReadPrm  = Prim.readPrim Prim.primOpTextNames }
-
-        case Source.parseDecls config ts of
-         Left err       -> error $ show err
-         Right decls    -> return decls
 
 
 -------------------------------------------------------------------------------
@@ -91,16 +67,21 @@ runConvert pathSrc pathDst
  | System.takeExtension pathSrc == ".smr"
  , System.takeExtension pathDst == ".sms"
  = do
-        decls   <- runLoadFile pathSrc
+        decls   <- Driver.runLoadFileDecls pathSrc
         let len = Codec.sizeOfFile decls
-        Foreign.allocaBytes len  $ \pBuf
+        Foreign.allocaBytes len $ \pBuf
          -> do  _ <- Codec.pokeFileDecls decls pBuf
                 h <- System.openBinaryFile pathDst System.WriteMode
                 System.hPutBuf h pBuf len
                 System.hClose h
                 return ()
 
- | otherwise
- = error "runConvert cannot convert"
+ -- | Decode binary store to text shimmer file.
+ | System.takeExtension pathSrc == ".sms"
+ , System.takeExtension pathDst == ".smr"
+ = do   decls   <- Driver.runLoadFileDecls pathSrc
+        TL.putStr $ BL.toLazyText $ mconcat $ map Source.buildDecl decls
 
+ | otherwise
+ = error "runConvert: cannot convert"
 

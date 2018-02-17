@@ -91,7 +91,9 @@ sizeOfPrim pp
         PrimOp tx       -> 1 + sizeOfName tx
 
         PrimLitNat _    -> 1 + sizeOfName (T.pack "nat")
-                        +  sizeOfSeq (const 1) (replicate 8 0)
+                        +  sizeOfSeq (const 1) (replicate (8 :: Int) (0 :: Int))
+
+        _               -> error "TODO: handle lists"
 
 
 ---------------------------------------------------------------------------------------------------
@@ -101,10 +103,10 @@ sizeOfName tt
  = result
  where  n       = T.lengthWord16 tt
         result
-         | n < 2^8      = 1 + 1 + n
-         | n < 2^16     = 1 + 2 + n
-         | n < 2^32     = 1 + 4 + n
-         | otherwise    = error "shimmer.sizeOfName: name too long to serialize."
+         | n < 2^(8  :: Int) = 1 + 1 + n
+         | n < 2^(16 :: Int) = 1 + 2 + n
+         | n < 2^(32 :: Int) = 1 + 4 + n
+         | otherwise         = error "shimmer.sizeOfName: name too long to serialize."
 
 
 -- | Compute the serialized size of a bump bounter.
@@ -114,7 +116,7 @@ sizeOfBump _ = 2
 
 -- | Compute the serialized size of a nominal atom.
 sizeOfNom  :: Integer -> Int
-sizeOfNom i  = 4
+sizeOfNom _  = 4
 
 
 -- | Compute the serialized size of a sequence of things.
@@ -123,8 +125,8 @@ sizeOfSeq fs xs
  = result
  where  n       = length xs
         result
-         | n < 2^8      = 1 + 1 + sum (map fs xs)
-         | n < 2^16     = 1 + 2 + sum (map fs xs)
-         | n < 2^32     = 1 + 4 + sum (map fs xs)
-         | otherwise    = error "shimmer.sizeOfSeq: sequence too long to serialize."
+         | n < 2^(8  :: Int) = 1 + 1 + sum (map fs xs)
+         | n < 2^(16 :: Int) = 1 + 2 + sum (map fs xs)
+         | n < 2^(32 :: Int) = 1 + 4 + sum (map fs xs)
+         | otherwise         = error "shimmer.sizeOfSeq: sequence too long to serialize."
 

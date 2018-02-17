@@ -12,14 +12,12 @@ where
 import SMR.Core.Exp
 import SMR.Prim.Op.Base
 
-import qualified Foreign.Storable               as S
 import qualified Foreign.Marshal.Utils          as F
 import qualified Foreign.Storable               as F
 import qualified Foreign.Ptr                    as F
 
 import qualified Data.Text                      as T
 import qualified Data.Text.Encoding             as T
-import qualified Data.ByteString                as BS
 import qualified Data.ByteString.Unsafe         as BS
 
 import Data.Text                                (Text)
@@ -161,7 +159,7 @@ pokeName !p n
 -- | Poke a `Bump` into memory.
 pokeBump :: Poke Integer
 pokeBump !n !p
- = if n <= 2^16 then
+ = if n <= 2^(16 :: Int) then
     do  pokeWord16 (fromIntegral n) p
    else error "shimmer.pokeBump: bump counter too large."
 {-# NOINLINE pokeBump #-}
@@ -170,7 +168,7 @@ pokeBump !n !p
 -- | Poke a `Nom` into memory.
 pokeNom  :: Poke Integer
 pokeNom !n !p
- = if n <= 2^28 then
+ = if n <= 2^(28 :: Int) then
     do  pokeWord32 (fromIntegral n) p
    else error "shimmer.pokeNom: nominal constant index too large."
 {-# NOINLINE pokeNom #-}
@@ -188,10 +186,9 @@ pokePrim !pp
 
         -- Integers are currently squashed into Word64s.
         PrimLitNat n
-         -> let n64 = (fromIntegral n :: Word64)
-            in  pokeWord8 0xef
-                 >=> pokeName (T.pack "nat")
-                 >=> pokeList pokeWord8
+         -> pokeWord8 0xef
+                >=> pokeName (T.pack "nat")
+                >=> pokeList pokeWord8
                         [ fromIntegral $ (n .&. 0xff00000000000000) `shiftR` 56
                         , fromIntegral $ (n .&. 0x00ff000000000000) `shiftR` 48
                         , fromIntegral $ (n .&. 0x0000ff0000000000) `shiftR` 40
@@ -200,6 +197,8 @@ pokePrim !pp
                         , fromIntegral $ (n .&. 0x0000000000ff0000) `shiftR` 16
                         , fromIntegral $ (n .&. 0x000000000000ff00) `shiftR` 8
                         , fromIntegral $ (n .&. 0x00000000000000ff)]
+
+        PrimTagList{} -> error "TODO: pokePrim: handle lists"
 {-# INLINE pokePrim #-}
 
 
@@ -208,13 +207,13 @@ pokePrim !pp
 pokeList :: Poke a -> Poke [a]
 pokeList pokeA ls
  = do   let  n     = length ls
-        if n <= 2^8 - 1
+        if n <= 2^(8 :: Int) - 1
          then   pokeWord8 0xf1 >=> pokeWord8  (fromIntegral n) >=> go ls
 
-        else if n <= 2^16 - 1
+        else if n <= 2^(16 :: Int) - 1
          then   pokeWord8 0xf2 >=> pokeWord16 (fromIntegral n) >=> go ls
 
-        else if n <= 2^28
+        else if n <= 2^(28 :: Int)
          then   pokeWord8 0xf2 >=> pokeWord32 (fromIntegral n) >=> go ls
 
         else error "shimmer.pokeList: list too long."
@@ -250,7 +249,7 @@ pokeText !tx !p0
             -- The Haskell Int type is only guaranteed to have at least 29
             -- bits of precision. We just limit the string size to 2^28,
             -- as 256MB should be enough for any sort of program text.
-            else if nBytes <= 2^28 then
+            else if nBytes <= 2^(28 :: Int) then
              do p1 <- pokeWord8  0xf3 p0
                 p2 <- pokeWord32 (fromIntegral nBytes) p1
                 F.copyBytes (F.castPtr p2) pStr nBytes

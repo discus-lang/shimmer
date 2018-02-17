@@ -12,7 +12,6 @@ where
 import SMR.Core.Exp
 import SMR.Prim.Op.Base
 
-import qualified Foreign.Storable               as S
 import qualified Foreign.Marshal.Utils          as F
 import qualified Foreign.Marshal.Alloc          as F
 import qualified Foreign.Storable               as F
@@ -20,7 +19,6 @@ import qualified Foreign.Ptr                    as F
 
 import qualified Data.Text                      as T
 import qualified Data.Text.Encoding             as T
-import qualified Data.ByteString                as BS
 import qualified Data.ByteString.Unsafe         as BS
 
 import Control.Monad
@@ -64,6 +62,8 @@ peekDecl !p0 !n0
           -> do (tx,  p2, n2) <- peekName p1 n1
                 (x,   p3, n3) <- peekExp  p2 n2
                 return (DeclSet tx x, p3, n3)
+
+         _ -> error "peekDecl: invalid header"
 {-# NOINLINE peekDecl #-}
 
 
@@ -101,6 +101,8 @@ peekExp !p0 !n0
           -> do (cs,  p2, n2) <- peekList peekCar p1 n1
                 (x,   p3, n3) <- peekExp p2 n2
                 return  (XSub cs x, p3, n3)
+
+         _ -> error "peekExp: invalid header"
 {-# NOINLINE peekExp #-}
 
 
@@ -128,7 +130,7 @@ peekParam !p0 !n0
           -> do (tx, p2, n2) <- peekName p1 n1
                 return (PParam tx PExp, p2, n2)
 
-         _ -> error $ "peekParam: invalid header"
+         _ -> error $ "peekParam: invalid header " ++ show b0 ++ " " ++ show p1
 {-# INLINE peekParam #-}
 
 
@@ -210,6 +212,8 @@ peekRef !p0 !n0
          0xd5
           -> do (i,  p2, n2) <- peekNom  p1 n1
                 return (RNom i,  p2, n2)
+
+         _ -> error "peekRef: invalid header"
 {-# INLINE peekRef #-}
 
 
@@ -258,16 +262,17 @@ peekPrim !p0 !n0
                  "nat"
                   -> do (ls, p3, n3) <- peekList peekWord8 p2 n2
                         case ls of
-                         [b0, b1, b2, b3, b4, b5, b6, b7]
-                          -> do let w   =   to64 b0 `shiftL` 56
-                                        .|. to64 b1 `shiftL` 48
-                                        .|. to64 b2 `shiftL` 40
-                                        .|. to64 b3 `shiftL` 32
-                                        .|. to64 b4 `shiftL` 24
-                                        .|. to64 b5 `shiftL` 16
-                                        .|. to64 b6 `shiftL` 8
-                                        .|. to64 b7
+                         [x0, x1, x2, x3, x4, x5, x6, x7]
+                          -> do let w   =   to64 x0 `shiftL` 56
+                                        .|. to64 x1 `shiftL` 48
+                                        .|. to64 x2 `shiftL` 40
+                                        .|. to64 x3 `shiftL` 32
+                                        .|. to64 x4 `shiftL` 24
+                                        .|. to64 x5 `shiftL` 16
+                                        .|. to64 x6 `shiftL` 8
+                                        .|. to64 x7
                                 return (PrimLitNat $ fromIntegral w, p3, n3)
+                         _ -> error "peekPrim: invalid payload"
 
                  s -> error $ "peekPrim: unknown tag " ++ show s
 
@@ -305,12 +310,12 @@ peekList peekA p0 n0
  | otherwise
  = error "peekList: invalid header"
 
- where  go 0 acc p n
+ where  go (0 :: Int) acc p n
          = return (reverse acc, p, n)
 
         go i acc p n
          = do   (x, p', n') <- peekA p n
-                go (n - 1) (x : acc) p' n'
+                go (i - 1) (x : acc) p' n'
         {-# NOINLINE go #-}
 
 {-# INLINE peekList #-}
@@ -331,7 +336,7 @@ peekText !p0 !n0
                 let n2  =  n0 - 2
                 when (not (n2 >= nBytes)) $ error "peekText: pointer out of range"
                 F.copyBytes buf p2 nBytes
-                bs      <- BS.unsafePackMallocCStringLen (F.castPtr p2, nBytes)
+                bs      <- BS.unsafePackMallocCStringLen (buf, nBytes)
                 return (T.decodeUtf8 bs, F.plusPtr p2 nBytes, n2 - nBytes)
 
          0xf2
@@ -341,7 +346,7 @@ peekText !p0 !n0
                 let n2  =  n0 - 3
                 when (not (n2 >= nBytes)) $ error "peekText: pointer out of range"
                 F.copyBytes buf p2 nBytes
-                bs      <- BS.unsafePackMallocCStringLen (F.castPtr p2, nBytes)
+                bs      <- BS.unsafePackMallocCStringLen (buf, nBytes)
                 return (T.decodeUtf8 bs, F.plusPtr p2 nBytes, n2 - nBytes)
 
          0xf3
@@ -351,7 +356,7 @@ peekText !p0 !n0
                 let n2  =  n0 - 5
                 when (not (n2 >= nBytes)) $ error "peekText: pointer out of range"
                 F.copyBytes buf p2 nBytes
-                bs      <- BS.unsafePackMallocCStringLen (F.castPtr p2, nBytes)
+                bs      <- BS.unsafePackMallocCStringLen (buf, nBytes)
                 return (T.decodeUtf8 bs, F.plusPtr p2 nBytes, n2 - nBytes)
 
          _ -> error $ "peekText: invalid header"
@@ -478,3 +483,4 @@ peek16 p o = F.peekByteOff p o
 peek32 :: Ptr a -> Int -> IO Word32
 peek32 p o = F.peekByteOff p o
 {-# INLINE peek32 #-}
+

@@ -69,7 +69,7 @@ usage :: String
 usage
  = unlines
  [ "shimmer                       Start the REPL with no soure file."
- , "shimmer FILE.smr              Start the REPL with the given file."
+ , "shimmer FILE                  Start the REPL with the given file."
  , "shimmer -help                 Display this help page."
- , "shimmer -check FILE.smr       Check that a source file is well formed."
+ , "shimmer -check FILE           Check that a source file is well formed."
  , "shimmer -convert FILE1 FILE2  Convert file from one format to another." ]
