@@ -1,5 +1,20 @@
 
-module SMR.Prim.Op.Base where
+module SMR.Prim.Op.Base
+        ( Prim          (..)
+        , PrimEval      (..)
+
+          -- * Exp
+        , takeArgExp
+
+          -- * Bool
+        , makeXBool, takeXBool, takeArgBool
+
+          -- * Nat
+        , makeXNat, takeXNat,  takeArgNat
+
+          -- * List
+        , makeXList)
+where
 import SMR.Core.Exp
 import SMR.Core.World
 import Data.Text        (Text)

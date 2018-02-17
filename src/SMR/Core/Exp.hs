@@ -11,7 +11,7 @@ module SMR.Core.Exp
         , Snv   (..), SnvBind(..)
         , Ups   (..), UpsBump
         , Ref   (..)
-        , Name
+        , Name, Nom, Depth, Bump
         , Text
 
          -- * Compounds

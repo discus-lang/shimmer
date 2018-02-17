@@ -15,19 +15,35 @@ library
         src
 
  build-depends:
-        base            >= 4.10 && < 4.11,
-        text            >= 1.2  && < 1.3,
-        vector          >= 0.12 && < 0.13,
-        containers      >= 0.5  && < 0.6,
-        bytestring      >= 0.10 && < 0.11
+        base            >= 4.10  && < 4.11,
+        text            >= 1.2   && < 1.3,
+        vector          >= 0.12  && < 0.13,
+        containers      >= 0.5   && < 0.6,
+        bytestring      >= 0.10  && < 0.11,
+        filepath        >= 1.4.0 && < 1.5,
+        haskeline       >= 0.7   && < 0.8
 
  exposed-modules:
+        SMR.Codec.Peek
+        SMR.Codec.Poke
+        SMR.Codec.Size
+
         SMR.Core.Exp
+        SMR.Core.Step
+        SMR.Core.World
 
         SMR.Data.Bag
         SMR.Data.Located
 
         SMR.Prim.Name
+
+        SMR.Prim.Op.Base
+        SMR.Prim.Op.Bool
+        SMR.Prim.Op.List
+        SMR.Prim.Op.Match
+        SMR.Prim.Op.Nat
+        SMR.Prim.Op.Nom
+        SMR.Prim.Op.Sym
         SMR.Prim.Op
 
         SMR.Source.Expected
@@ -37,19 +53,17 @@ library
         SMR.Source.Pretty
         SMR.Source.Token
 
-        SMR.Codec.Size
-        SMR.Codec.Poke
-        SMR.Codec.Peek
-
  other-modules:
+        SMR.CLI.Driver.Load
+        SMR.CLI.Config
+        SMR.CLI.Help
+        SMR.CLI.Repl
+
         SMR.Core.Exp.Base
         SMR.Core.Exp.Compounds
         SMR.Core.Exp.Push
         SMR.Core.Exp.Train
 
-        SMR.Prim.Op.Base
-        SMR.Prim.Op.Bool
-        SMR.Prim.Op.Nat
 
  extensions:
         PatternGuards

@@ -366,7 +366,7 @@ peekText !p0 !n0
 {-# NOINLINE peekText #-}
 
 ---------------------------------------------------------------------------------------------------
--- | Peek a Word8 from memory, with bounds check.
+-- | Peek a `Word8` from memory, in network byte order, with bounds check.
 peekWord8  :: Peek Word8
 peekWord8 p n
  | n >= 1       = peekWord8' p n
@@ -374,7 +374,7 @@ peekWord8 p n
 {-# NOINLINE peekWord8 #-}
 
 
--- | Peek a Word8 from memory, with no bounds check.
+-- | Peek a `Word8` from memory, in network byte order, with no bounds check.
 peekWord8' :: Peek Word8
 peekWord8' p n
  = do   w  <- F.peek p
@@ -382,7 +382,7 @@ peekWord8' p n
 {-# INLINE peekWord8' #-}
 
 
--- | Peek a Word16 from memory, with bounds check.
+-- | Peek a `Word16` from memory, in network byte order, with bounds check.
 peekWord16  :: Peek Word16
 peekWord16 p n
  | n >= 2       = peekWord16' p n
@@ -390,7 +390,7 @@ peekWord16 p n
 {-# NOINLINE peekWord16 #-}
 
 
--- | Peek a Word16 from memory, with no bound check.
+-- | Peek a `Word16` from memory, in network byte order, with no bound check.
 peekWord16' :: Peek Word16
 peekWord16' p n
  = do   b0 <- fmap to16 $ peek8 p 0
@@ -401,7 +401,7 @@ peekWord16' p n
 {-# INLINE peekWord16' #-}
 
 
--- | Peek a Word32 from memory, with bounds check.
+-- | Peek a `Word32` from memory, in network byte order, with bounds check.
 peekWord32  :: Peek Word32
 peekWord32 p n
  | n >= 4       = peekWord32' p n
@@ -409,7 +409,7 @@ peekWord32 p n
 {-# NOINLINE peekWord32 #-}
 
 
--- | Peek a Word32 from memory, in network byte order.
+-- | Peek a `Word32` from memory, in network byte order, with no bounds check.
 peekWord32' :: Peek Word32
 peekWord32' p n
  = do   b0 <- fmap to32 $ peek8 p 0
@@ -424,7 +424,7 @@ peekWord32' p n
 {-# INLINE peekWord32' #-}
 
 
--- | Peek a Word64 from memory, with bounds check.
+-- | Peek a `Word64` from memory, in network byte order, with bounds check.
 peekWord64  :: Peek Word64
 peekWord64 p n
  | n >= 8       = peekWord64' p n
@@ -432,7 +432,7 @@ peekWord64 p n
 {-# NOINLINE peekWord64 #-}
 
 
--- | Peek a Word64 from memory, in network byte order.
+-- | Peek a `Word64` from memory, in network byte order, in network byte order.
 peekWord64' :: Peek Word64
 peekWord64' p n
  = do   b0 <- fmap to64 $ peek8 p 0

@@ -38,7 +38,7 @@ runLoadFileDecls path
          Right decls    -> return decls
 
 
- -- | Shimmer binary store file.
+ -- Shimmer binary store file.
  | System.takeExtension path == ".sms"
  = do
         h     <- System.openBinaryFile path System.ReadMode

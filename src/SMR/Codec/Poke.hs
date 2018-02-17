@@ -260,7 +260,7 @@ pokeText !tx !p0
 
 
 ---------------------------------------------------------------------------------------------------
--- | Poke a Word8 into memory.
+-- | Poke a `Word8` into memory.
 pokeWord8 :: Poke Word8
 pokeWord8 w p
  = do   F.poke p w
@@ -268,7 +268,7 @@ pokeWord8 w p
 {-# INLINE pokeWord8 #-}
 
 
--- | Poke a Word16 into memory, in network byte order.
+-- | Poke a `Word16` into memory, in network byte order.
 pokeWord16 :: Poke Word16
 pokeWord16 w p
  = do   poke8 p 0 $ from16 $ (w .&. 0xff00) `shiftR` 8
@@ -277,7 +277,7 @@ pokeWord16 w p
 {-# INLINE pokeWord16 #-}
 
 
--- | Poke a Word32 into memory, in network byte order.
+-- | Poke a `Word32` into memory, in network byte order.
 pokeWord32 :: Poke Word32
 pokeWord32 w p
  = do   poke8 p 0 $ from32 $ (w .&. 0xff000000) `shiftR` 24
@@ -288,7 +288,7 @@ pokeWord32 w p
 {-# INLINE pokeWord32 #-}
 
 
--- | Poke a Word32 into memory, in network byte order.
+-- | Poke a `Word64` into memory, in network byte order.
 pokeWord64 :: Poke Word64
 pokeWord64 w p
  = do   poke8 p 0 $ from64 $ (w .&. 0xff00000000000000) `shiftR` 56

@@ -24,8 +24,8 @@ data Exp s p
         -- | Application of a function expression to an argument.
         | XApp  !(Exp s p) ![Exp s p]
 
-        -- | Variable name with a binding depth.
-        | XVar  !Name !Integer
+        -- | Variable name with a bump counter.
+        | XVar  !Name !Bump
 
         -- | Abstraction with a list of parameters and a body expression.
         | XAbs  ![Param] !(Exp s p)
@@ -90,8 +90,8 @@ data Snv s p
         deriving Show
 
 data SnvBind s p
-        = BindVar !Name !Integer !(Exp s p)
-        | BindNom !Integer       !(Exp s p)
+        = BindVar !Name !Bump !(Exp s p)
+        | BindNom !Nom        !(Exp s p)
         deriving Show
 
 
@@ -102,8 +102,10 @@ data Ups
         deriving Show
 
 type UpsBump
-        = ((Name, Integer), Integer)
+        = ((Name, Depth), Bump)
 
+type Depth = Integer
+type Bump  = Integer
 
 -- | A reference to some external thing.
 data Ref s p
@@ -120,10 +122,14 @@ data Ref s p
         | RSet  !Name
 
         -- | A nominal variable.
-        | RNom  !Integer
+        | RNom  !Nom
         deriving Show
 
 
 -- | Generic names for things.
 type Name = Text
+
+
+-- | Index of a nominal constant.
+type Nom = Integer
 
