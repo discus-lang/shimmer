@@ -1,22 +1,45 @@
 
+-- Let flattening.
+--
+--    let x1 = (let x2 = eBind2 in eBody2) in eBody1
+--
+-- => let x2 = eBind2 in
+--    let x1 = eBody2 in
+--    eBody1                      ! (only if x2 not in fv(eBody1))
+--
+-- => let xF = eBind2 in
+--    let x1 = eBody2 in
+--    eBody1[xF/x2]               !(for fresh xF)
+--
+
+-- Express as HOAS
+@term-free
+ = %let (%let eBind2 (\x2. eBody2 x2)) (\x1. eBody1 x1);
+
+@match-let eExp eFail fCont
+ = #match-app  eExp %fail               $ \eLet eBind eVarBody.
+   #if (#not (#sym-eq eLet %let)) eFail $
+   #match-abs1 eVarBody %fail           $ \nSym eBody.
+   fCont (@pair-fst nSym) eBind eBody;
+
 @pair-fst xx
  = #list-uncons xx (\x xs. x);
 
--- @match-let (%let (\x. xBind) xBody) fCont
---  => fCont xNom xBind xBody
-@match-let xExp xFail fCont
- = #match-app   xExp %fail (\xLet xBind xVarBody.
-   #if (#not (#sym-eq xLet %let)) xFail (
-   #match-abs1 xVarBody %fail (\zE1 xE2.
-   fCont (@pair-fst zE1) xBind xE2)));
+@test1 = @match-let @term-free %fail f;
 
-@term y
- = %let (%let %e1 (\y. %e2 y)) (\x. %e3 x y);
 
-@rewrite-let ee
- = @match-let ee     %fail $ \nNom1 eBind1 eBody1.
-   @match-let eBind1 %fail $ \nNom2 eBind2 eBody2.
+@rewrite-let-let eExp
+ = @match-let eExp   %fail $ \nSym1 eBind1 eBody1.
+   @match-let eBind1 %fail $ \nSym2 eBind2 eBody2.
    %let eBind2 $ \x2.
-   %let (#nom-close nNom1 x2 eBody1) $ \x1.
-   #nom-close nNom2 x1 eBody2;
+   %let (#nom-close nSym2 x2 eBody2) $ \x1.
+   #nom-close nSym1 x1 eBody1;
+
+@test2 = @rewrite-let-let @term-free;
+
+
+@term-with thing
+ = %let (%let eBind2 (\x2. %foo thing)) (\x1. %bar thing);
+
+@test3 = @rewrite-let-let (@term-with x2);
 
