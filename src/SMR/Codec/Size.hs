@@ -33,12 +33,35 @@ sizeOfDecl dd
 sizeOfExp :: Exp Text Prim -> Int
 sizeOfExp xx
  = case xx of
-        XRef ref        -> sizeOfRef ref
-        XKey _key x     -> 2 + sizeOfExp x
-        XApp x1 xs      -> 1 + sizeOfExp x1 + sizeOfSeq sizeOfExp xs
-        XVar n b        -> 1 + sizeOfName n + sizeOfBump b
-        XAbs ps x       -> 1 + sizeOfSeq sizeOfParam ps + sizeOfExp x
-        XSub cs x       -> 1 + sizeOfSeq sizeOfCar cs   + sizeOfExp x
+        XRef ref
+         -> sizeOfRef ref
+
+        XKey _key x
+         -> 2 + sizeOfExp x
+
+        XApp x1 xs
+         | length xs <= 15
+         -> 1 + sizeOfExp x1 + (sum $ map sizeOfExp xs)
+
+         | otherwise
+         -> 1 + sizeOfExp x1 + sizeOfSeq sizeOfExp xs
+
+        XVar n b
+         |  T.lengthWord16 n <= 15, b == 0
+         -> 1 + T.lengthWord16 n
+
+         |  otherwise
+         -> 1 + sizeOfName n + sizeOfBump b
+
+        XAbs ps x
+         | length ps <= 15
+         -> 1 + (sum $ map sizeOfParam ps) + sizeOfExp x
+
+         | otherwise
+         -> 1 + sizeOfSeq sizeOfParam ps + sizeOfExp x
+
+        XSub cs x
+         -> 1 + sizeOfSeq sizeOfCar cs   + sizeOfExp x
 
 
 -- | Compute the serialized size of a parameter.
@@ -104,6 +127,7 @@ sizeOfName tt
  = result
  where  n       = T.lengthWord16 tt
         result
+         | n <= 13           = 1 + n
          | n < 2^(8  :: Int) = 1 + 1 + n
          | n < 2^(16 :: Int) = 1 + 2 + n
          | n < 2^(32 :: Int) = 1 + 4 + n
@@ -126,6 +150,7 @@ sizeOfSeq fs xs
  = result
  where  n       = length xs
         result
+         | n <= 1            = 1 + sum (map fs xs)
          | n < 2^(8  :: Int) = 1 + 1 + sum (map fs xs)
          | n < 2^(16 :: Int) = 1 + 2 + sum (map fs xs)
          | n < 2^(32 :: Int) = 1 + 4 + sum (map fs xs)

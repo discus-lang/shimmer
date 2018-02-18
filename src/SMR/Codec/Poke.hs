@@ -48,10 +48,10 @@ pokeDecl :: Poke (Decl Text Prim)
 pokeDecl xx
  = case xx of
         DeclMac name x
-         ->     pokeWord8 0xa0 >=> pokeText name >=> pokeExp x
+         ->     pokeWord8 0xd0 >=> pokeText name >=> pokeExp x
 
         DeclSet name x
-         ->     pokeWord8 0xa1 >=> pokeText name >=> pokeExp x
+         ->     pokeWord8 0xd1 >=> pokeText name >=> pokeExp x
 {-# NOINLINE pokeDecl #-}
 
 
@@ -68,12 +68,27 @@ pokeExp xx
          ->     pokeWord8 0xb1 >=> pokeKey key >=> pokeExp x
 
         XApp x1 xs
+         -- Short circuit to App.
+         | length xs <= 15
+         ->     pokeApp (x1, xs)
+
+         | otherwise
          ->     pokeWord8 0xb2 >=> pokeExp x1  >=> pokeList pokeExp xs
 
         XVar name i
+         -- Short circuit to Var.
+         | T.length name <= 15, i == 0
+         ->     pokeVar name
+
+         | otherwise
          ->     pokeWord8 0xb3 >=> pokeName name >=> pokeBump i
 
         XAbs ps x
+         -- Short circuit to Abs
+         | length ps <= 15
+         ->     pokeAbs (ps, x)
+
+         | otherwise
          ->     pokeWord8 0xb4 >=> pokeList pokeParam ps >=> pokeExp x
 
         XSub cs x
@@ -81,12 +96,42 @@ pokeExp xx
 {-# NOINLINE pokeExp #-}
 
 
+-- | Poke an `Exp` abstraction into memory with packed length.
+pokeAbs :: Poke ([Param], Exp Text Prim)
+pokeAbs (ps, x)
+ =      pokeWord8 (0x90 + fromIntegral (length ps))
+         >=> go ps
+         >=> pokeExp x
+
+ where  go [] !p0 = return p0
+        go (p : ps) !p0
+         = do   p1 <- pokeParam p p0
+                go ps p1
+        {-# NOINLINE go #-}
+{-# INLINE pokeAbs #-}
+
+
+-- | Poke an `Exp` application into memory with packed length.
+pokeApp :: Poke (Exp Text Prim, [Exp Text Prim])
+pokeApp (x1, xs)
+ =      pokeWord8 (0xa0 + fromIntegral (length xs))
+         >=> pokeExp x1
+         >=> go xs
+
+ where  go [] !p0 = return p0
+        go (x : xs) !p0
+         = do   p1 <- pokeExp x p0
+                go xs p1
+        {-# NOINLINE go #-}
+{-# INLINE pokeApp #-}
+
+
 -- | Poke a `Key` into memory.
 pokeKey :: Poke Key
 pokeKey key
  = case key of
-        KBox -> pokeWord8 0xba
-        KRun -> pokeWord8 0xbb
+        KBox -> pokeWord8 0xb6
+        KRun -> pokeWord8 0xb7
 {-# INLINE pokeKey #-}
 
 
@@ -95,10 +140,10 @@ pokeParam :: Poke Param
 pokeParam pp
  = case pp of
         PParam tx PVal
-         ->     pokeWord8 0xbc >=> pokeName tx
+         ->     pokeWord8 0xb8 >=> pokeName tx
 
         PParam tx PExp
-         ->     pokeWord8 0xbd >=> pokeName tx
+         ->     pokeWord8 0xb9 >=> pokeName tx
 {-# INLINE pokeParam #-}
 
 
@@ -107,13 +152,13 @@ pokeCar :: Poke (Car Text Prim)
 pokeCar car
  = case car of
         CSim (SSnv sbs)
-         ->     pokeWord8 0xc1 >=> pokeList pokeSnvBind sbs
+         ->     pokeWord8 0xba >=> pokeList pokeSnvBind sbs
 
         CRec (SSnv sbs)
-         ->     pokeWord8 0xc2 >=> pokeList pokeSnvBind sbs
+         ->     pokeWord8 0xbb >=> pokeList pokeSnvBind sbs
 
         CUps (UUps ups)
-         ->     pokeWord8 0xc3 >=> pokeList pokeUpsBump ups
+         ->     pokeWord8 0xbc >=> pokeList pokeUpsBump ups
 {-# INLINE pokeCar #-}
 
 
@@ -122,32 +167,46 @@ pokeSnvBind :: Poke (SnvBind Text Prim)
 pokeSnvBind !b
  = case b of
         BindVar n d x
-         -> pokeWord8 0xca >=> pokeName n >=> pokeBump d >=> pokeExp x
+         ->     pokeWord8 0xbd >=> pokeName n >=> pokeBump d >=> pokeExp x
 
         BindNom n x
-         -> pokeWord8 0xcb >=> pokeNom  n >=> pokeExp x
+         ->     pokeWord8 0xbe >=> pokeNom  n >=> pokeExp x
 {-# INLINE pokeSnvBind #-}
 
 
 -- | Poke an `UpsBump` into memory.
 pokeUpsBump :: Poke UpsBump
 pokeUpsBump ((n, d), i)
- =      pokeWord8 0xcc >=> pokeName n >=> pokeBump d >=> pokeBump i
+ =      pokeWord8 0xbf >=> pokeName n >=> pokeBump d >=> pokeBump i
 {-# INLINE pokeUpsBump #-}
 
 
 ---------------------------------------------------------------------------------------------------
+-- | Poke a `Var` into memory.
+pokeVar :: Poke Text
+pokeVar !tx !p0
+ = do   let bs = T.encodeUtf8 tx
+        BS.unsafeUseAsCStringLen bs $ \(pStr, nBytes)
+         -> if nBytes <= 15 then
+             do p1 <- pokeWord8 (0x80 + (fromIntegral nBytes)) p0
+                F.copyBytes (F.castPtr p1) pStr nBytes
+                return (F.plusPtr p1 nBytes)
+            else error "shimmer.pokeVar: var length too long"
+{-# INLINE pokeVar #-}
+
+
 -- | Poke a `Ref` into memory.
 pokeRef :: Poke (Ref Text Prim)
 pokeRef !r
  = case r of
-        -- Short Circuit Sym.
+        -- Short Circuit to Sym Name.
         RSym tx -> pokeName tx
-        RPrm p  -> pokeWord8 0xd1 >=> pokePrim p
-        RTxt tx -> pokeWord8 0xd2 >=> pokeName tx
-        RMac tx -> pokeWord8 0xd3 >=> pokeName tx
-        RSet tx -> pokeWord8 0xd4 >=> pokeName tx
-        RNom i  -> pokeWord8 0xd5 >=> pokeNom  i
+
+        RPrm p  -> pokeWord8 0xc1 >=> pokePrim p
+        RTxt tx -> pokeWord8 0xc2 >=> pokeName tx
+        RMac tx -> pokeWord8 0xc3 >=> pokeName tx
+        RSet tx -> pokeWord8 0xc4 >=> pokeName tx
+        RNom i  -> pokeWord8 0xc5 >=> pokeNom  i
 {-# INLINE pokeRef #-}
 
 
@@ -182,10 +241,12 @@ pokeNom !n !p
 pokePrim :: Poke Prim
 pokePrim !pp
  = case pp of
-        PrimTagUnit             -> pokeWord8 0xda
-        PrimLitBool True        -> pokeWord8 0xdb
-        PrimLitBool False       -> pokeWord8 0xdc
-        PrimOp tx               -> pokeWord8 0xdf >=> pokeText tx
+        PrimTagUnit             -> pokeWord8 0xe0
+        PrimTagList             -> pokeWord8 0xe1
+        PrimLitBool True        -> pokeWord8 0xe2
+        PrimLitBool False       -> pokeWord8 0xe3
+
+        PrimOp tx               -> pokeWord8 0xee >=> pokeText tx
 
         -- Integers are currently squashed into Word64s.
         PrimLitNat n
@@ -201,7 +262,6 @@ pokePrim !pp
                         , fromIntegral $ (n .&. 0x000000000000ff00) `shiftR` 8
                         , fromIntegral $ (n .&. 0x00000000000000ff)]
 
-        PrimTagList{} -> error "TODO: pokePrim: handle lists"
 {-# INLINE pokePrim #-}
 
 
@@ -210,14 +270,17 @@ pokePrim !pp
 pokeList :: Poke a -> Poke [a]
 pokeList pokeA ls
  = do   let  n     = length ls
-        if n <= 2^(8 :: Int) - 1
-         then   pokeWord8 0xf1 >=> pokeWord8  (fromIntegral n) >=> go ls
+        if n <= 13 then
+         do     pokeWord8 (0xf0 + (fromIntegral n)) >=> go ls
+
+        else if n <= 2^(8 :: Int) - 1
+         then   pokeWord8 0xfd >=> pokeWord8  (fromIntegral n) >=> go ls
 
         else if n <= 2^(16 :: Int) - 1
-         then   pokeWord8 0xf2 >=> pokeWord16 (fromIntegral n) >=> go ls
+         then   pokeWord8 0xfe >=> pokeWord16 (fromIntegral n) >=> go ls
 
         else if n <= 2^(28 :: Int)
-         then   pokeWord8 0xf2 >=> pokeWord32 (fromIntegral n) >=> go ls
+         then   pokeWord8 0xff >=> pokeWord32 (fromIntegral n) >=> go ls
 
         else error "shimmer.pokeList: list too long."
 
@@ -232,20 +295,24 @@ pokeList pokeA ls
 
 ---------------------------------------------------------------------------------------------------
 -- | Poke a text value into memory as UTF8 characters.
---   TODO: change so short sizes are packed in the same byte.
 pokeText :: Poke Text
 pokeText !tx !p0
  = do   let bs = T.encodeUtf8 tx
 
         BS.unsafeUseAsCStringLen bs $ \(pStr, nBytes)
-         -> if nBytes <= 255 then
-             do p1 <- pokeWord8 0xf1 p0
+         -> if nBytes <= 13 then
+             do p1 <- pokeWord8 (0xf0 + (fromIntegral nBytes)) p0
+                F.copyBytes (F.castPtr p1) pStr nBytes
+                return (F.plusPtr p1 nBytes)
+
+            else if nBytes <= 255 then
+             do p1 <- pokeWord8 0xfd p0
                 p2 <- pokeWord8 (fromIntegral nBytes) p1
                 F.copyBytes (F.castPtr p2) pStr nBytes
                 return (F.plusPtr p2 nBytes)
 
             else if nBytes <= 65535 then
-             do p1 <- pokeWord8  0xf2 p0
+             do p1 <- pokeWord8  0xfe p0
                 p2 <- pokeWord16 (fromIntegral nBytes) p1
                 F.copyBytes (F.castPtr p2) pStr nBytes
                 return (F.plusPtr p2 nBytes)
@@ -254,7 +321,7 @@ pokeText !tx !p0
             -- bits of precision. We just limit the string size to 2^28,
             -- as 256MB should be enough for any sort of program text.
             else if nBytes <= 2^(28 :: Int) then
-             do p1 <- pokeWord8  0xf3 p0
+             do p1 <- pokeWord8  0xff p0
                 p2 <- pokeWord32 (fromIntegral nBytes) p1
                 F.copyBytes (F.castPtr p2) pStr nBytes
                 return (F.plusPtr p2 nBytes)
