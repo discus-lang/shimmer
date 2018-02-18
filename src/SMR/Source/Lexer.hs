@@ -117,7 +117,7 @@ lexText :: Location -> [Char] -> Maybe (Text, Location, [Char])
 lexText lStart xx
  = go lStart [] xx
  where
-        go lStart' acc []
+        go _ _ []
          = Nothing
 
         go lStart' acc ('\"' : cs)

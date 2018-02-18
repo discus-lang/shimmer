@@ -33,7 +33,7 @@ sizeOfDecl dd
 sizeOfExp :: Exp Text Prim -> Int
 sizeOfExp xx
  = case xx of
-        XRef ref        -> 1 + sizeOfRef ref
+        XRef ref        -> sizeOfRef ref
         XKey _key x     -> 2 + sizeOfExp x
         XApp x1 xs      -> 1 + sizeOfExp x1 + sizeOfSeq sizeOfExp xs
         XVar n b        -> 1 + sizeOfName n + sizeOfBump b
@@ -61,7 +61,7 @@ sizeOfSnvBind :: SnvBind Text Prim -> Int
 sizeOfSnvBind sb
  = case sb of
         BindVar n i x   -> 1 + sizeOfName n + sizeOfBump i + sizeOfExp x
-        BindNom i x     -> 1 + sizeOfBump i + sizeOfExp x
+        BindNom i x     -> 1 + sizeOfNom i  + sizeOfExp x
 
 
 -- | Compute the serialized size of an lifting bump.
@@ -76,8 +76,9 @@ sizeOfUpsBump ub
 sizeOfRef :: Ref Text Prim -> Int
 sizeOfRef rr
  = case rr of
-        RSym n          -> 1 + sizeOfName n
+        RSym n          -> sizeOfName n
         RPrm p          -> 1 + sizeOfPrim p
+        RTxt t          -> 1 + sizeOfName t
         RMac n          -> 1 + sizeOfName n
         RSet n          -> 1 + sizeOfName n
         RNom n          -> 1 + sizeOfNom  n

@@ -104,8 +104,8 @@ peekExp !p0 !n0
 
          -- Short circuit XRef.
          _
-          -> do (r,   p1, n1) <- peekRef p0 n0
-                return (XRef r, p1, n1)
+          -> do (r,   p1', n1') <- peekRef p0 n0
+                return (XRef r, p1', n1')
 {-# NOINLINE peekExp #-}
 
 
@@ -206,19 +206,24 @@ peekRef !p0 !n0
 
          0xd2
           -> do (tx, p2, n2) <- peekText p1 n1
-                return (RMac tx, p2, n2)
+                return (RTxt tx, p2, n2)
 
          0xd3
           -> do (tx, p2, n2) <- peekText p1 n1
-                return (RSet tx, p2, n2)
+                return (RMac tx, p2, n2)
 
          0xd4
+          -> do (tx, p2, n2) <- peekText p1 n1
+                return (RSet tx, p2, n2)
+
+         0xd5
           -> do (i,  p2, n2) <- peekNom  p1 n1
                 return (RNom i,  p2, n2)
 
-         -- TODO: short circuit Sym
-
-         _ -> error "peekRef: invalid header"
+         -- Short Circuit Sym.
+         _
+          -> do (r,   p1', n1') <- peekName p0 n0
+                return (RSym r, p1', n1')
 {-# INLINE peekRef #-}
 
 

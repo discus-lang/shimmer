@@ -39,7 +39,7 @@ primOpMatchSym
 
 
 -- | Match an application.
---   TODO(BL): pack the args into a list
+--   TODO: pack the args into a list
 primOpMatchApp :: PrimEval s Prim w
 primOpMatchApp
  = PrimEval

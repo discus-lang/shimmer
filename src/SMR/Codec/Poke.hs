@@ -144,9 +144,10 @@ pokeRef !r
         -- Short Circuit Sym.
         RSym tx -> pokeName tx
         RPrm p  -> pokeWord8 0xd1 >=> pokePrim p
-        RMac tx -> pokeWord8 0xd2 >=> pokeName tx
-        RSet tx -> pokeWord8 0xd3 >=> pokeName tx
-        RNom i  -> pokeWord8 0xd4 >=> pokeNom  i
+        RTxt tx -> pokeWord8 0xd2 >=> pokeName tx
+        RMac tx -> pokeWord8 0xd3 >=> pokeName tx
+        RSet tx -> pokeWord8 0xd4 >=> pokeName tx
+        RNom i  -> pokeWord8 0xd5 >=> pokeNom  i
 {-# INLINE pokeRef #-}
 
 
