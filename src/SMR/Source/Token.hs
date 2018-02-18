@@ -8,7 +8,8 @@ data Token
         = KEnd                  -- ^ End of input.
         | KPunc Char            -- ^ Punctuation character.
         | KName Space Text      -- ^ A scoped name.
-        | KNat  Integer         -- ^ A natural number.
+        | KNat  Integer         -- ^ A literal natural number.
+        | KText Text            -- ^ A literal text string.
         deriving (Show, Eq)
 
 
@@ -62,4 +63,11 @@ takeNatOfToken kk
         KNat n          -> Just n
         _               -> Nothing
 
+
+-- | Take the text string from a token, if any.
+takeTextOfToken :: Token -> Maybe Text
+takeTextOfToken kk
+ = case kk of
+        KText tx        -> Just tx
+        _               -> Nothing
 

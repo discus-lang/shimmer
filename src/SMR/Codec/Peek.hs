@@ -53,12 +53,12 @@ peekDecl :: Peek (Decl Text Prim)
 peekDecl !p0 !n0
  = do   (b0, p1, n1) <- peekWord8 p0 n0
         p1 `seq` case b0 of
-         0xa1
+         0xa0
           -> do (tx,  p2, n2) <- peekName p1 n1
                 (x,   p3, n3) <- peekExp  p2 n2
                 return (DeclMac tx x, p3, n3)
 
-         0xa2
+         0xa1
           -> do (tx,  p2, n2) <- peekName p1 n1
                 (x,   p3, n3) <- peekExp  p2 n2
                 return (DeclSet tx x, p3, n3)
@@ -73,36 +73,39 @@ peekExp :: Peek (Exp Text Prim)
 peekExp !p0 !n0
  = do   (b0, p1, n1) <- peekWord8 p0 n0
         p1 `seq` case b0 of
-         0xb1
+         0xb0
           -> do (r,   p2, n2) <- peekRef p1 n1
                 return  (XRef r, p2, n2)
 
-         0xb2
+         0xb1
           -> do (key, p2, n2) <- peekKey p1 n1
                 (xx,  p3, n3) <- peekExp p2 n2
                 return  (XKey key xx, p3, n3)
 
-         0xb3
+         0xb2
           -> do (x1,  p2, n2) <- peekExp p1 n1
                 (xs,  p3, n3) <- peekList peekExp p2 n2
                 return  (XApp x1 xs, p3, n3)
 
-         0xb4
+         0xb3
           -> do (n,   p2, n2) <- peekName p1 n1
                 (i,   p3, n3) <- peekBump p2 n2
                 return  (XVar n i, p3, n3)
 
-         0xb5
+         0xb4
           -> do (ps,  p2, n2) <- peekList peekParam p1 n1
                 (x,   p3, n3) <- peekExp p2 n2
                 return  (XAbs ps x, p3, n3)
 
-         0xb6
+         0xb5
           -> do (cs,  p2, n2) <- peekList peekCar p1 n1
                 (x,   p3, n3) <- peekExp p2 n2
                 return  (XSub cs x, p3, n3)
 
-         _ -> error "peekExp: invalid header"
+         -- Short circuit XRef.
+         _
+          -> do (r,   p1, n1) <- peekRef p0 n0
+                return (XRef r, p1, n1)
 {-# NOINLINE peekExp #-}
 
 
@@ -193,25 +196,27 @@ peekRef :: Peek (Ref Text Prim)
 peekRef !p0 !n0
  = do   (b0, p1, n1) <- peekWord8 p0 n0
         p1 `seq` case b0 of
-         0xd1
+         0xd0
           -> do (tx, p2, n2) <- peekText p1 n1
                 return (RSym tx, p2, n2)
 
-         0xd2
+         0xd1
           -> do (m,  p2, n2) <- peekPrim p1 n1
                 return (RPrm m,  p2, n2)
 
-         0xd3
+         0xd2
           -> do (tx, p2, n2) <- peekText p1 n1
                 return (RMac tx, p2, n2)
 
-         0xd4
+         0xd3
           -> do (tx, p2, n2) <- peekText p1 n1
                 return (RSet tx, p2, n2)
 
-         0xd5
+         0xd4
           -> do (i,  p2, n2) <- peekNom  p1 n1
                 return (RNom i,  p2, n2)
+
+         -- TODO: short circuit Sym
 
          _ -> error "peekRef: invalid header"
 {-# INLINE peekRef #-}

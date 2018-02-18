@@ -3,6 +3,7 @@ module SMR.CLI.Driver.Load
         (runLoadFileDecls)
 where
 import qualified SMR.Prim.Op                    as Prim
+import qualified SMR.Prim.Op.Base               as Prim
 import qualified SMR.Prim.Name                  as Prim
 import qualified SMR.Source.Parser              as Source
 import qualified SMR.Source.Lexer               as Source

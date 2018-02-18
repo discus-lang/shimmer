@@ -48,10 +48,10 @@ pokeDecl :: Poke (Decl Text Prim)
 pokeDecl xx
  = case xx of
         DeclMac name x
-         ->     pokeWord8 0xa1 >=> pokeText name >=> pokeExp x
+         ->     pokeWord8 0xa0 >=> pokeText name >=> pokeExp x
 
         DeclSet name x
-         ->     pokeWord8 0xa2 >=> pokeText name >=> pokeExp x
+         ->     pokeWord8 0xa1 >=> pokeText name >=> pokeExp x
 {-# NOINLINE pokeDecl #-}
 
 
@@ -60,23 +60,24 @@ pokeDecl xx
 pokeExp :: Poke (Exp Text Prim)
 pokeExp xx
  = case xx of
+        -- Short circuit XRef.
         XRef ref
-         ->     pokeWord8 0xb1 >=> pokeRef ref
+         ->     pokeRef ref
 
         XKey key x
-         ->     pokeWord8 0xb2 >=> pokeKey key >=> pokeExp x
+         ->     pokeWord8 0xb1 >=> pokeKey key >=> pokeExp x
 
         XApp x1 xs
-         ->     pokeWord8 0xb3 >=> pokeExp x1  >=> pokeList pokeExp xs
+         ->     pokeWord8 0xb2 >=> pokeExp x1  >=> pokeList pokeExp xs
 
         XVar name i
-         ->     pokeWord8 0xb4 >=> pokeName name >=> pokeBump i
+         ->     pokeWord8 0xb3 >=> pokeName name >=> pokeBump i
 
         XAbs ps x
-         ->     pokeWord8 0xb5 >=> pokeList pokeParam ps >=> pokeExp x
+         ->     pokeWord8 0xb4 >=> pokeList pokeParam ps >=> pokeExp x
 
         XSub cs x
-         ->     pokeWord8 0xb6 >=> pokeList pokeCar cs >=> pokeExp x
+         ->     pokeWord8 0xb5 >=> pokeList pokeCar cs >=> pokeExp x
 {-# NOINLINE pokeExp #-}
 
 
@@ -140,11 +141,12 @@ pokeUpsBump ((n, d), i)
 pokeRef :: Poke (Ref Text Prim)
 pokeRef !r
  = case r of
-        RSym tx -> pokeWord8 0xd1 >=> pokeName tx
-        RPrm p  -> pokeWord8 0xd2 >=> pokePrim p
-        RMac tx -> pokeWord8 0xd3 >=> pokeName tx
-        RSet tx -> pokeWord8 0xd4 >=> pokeName tx
-        RNom i  -> pokeWord8 0xd5 >=> pokeNom  i
+        -- Short Circuit Sym.
+        RSym tx -> pokeName tx
+        RPrm p  -> pokeWord8 0xd1 >=> pokePrim p
+        RMac tx -> pokeWord8 0xd2 >=> pokeName tx
+        RSet tx -> pokeWord8 0xd3 >=> pokeName tx
+        RNom i  -> pokeWord8 0xd4 >=> pokeNom  i
 {-# INLINE pokeRef #-}
 
 
@@ -229,6 +231,7 @@ pokeList pokeA ls
 
 ---------------------------------------------------------------------------------------------------
 -- | Poke a text value into memory as UTF8 characters.
+--   TODO: change so short sizes are packed in the same byte.
 pokeText :: Poke Text
 pokeText !tx !p0
  = do   let bs = T.encodeUtf8 tx

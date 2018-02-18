@@ -123,6 +123,9 @@ data Ref s p
         -- | A primitive value.
         | RPrm  !p
 
+        -- | A text string.
+        | RTxt  !Text
+
         -- | A macro name.
         | RMac  !Name
 

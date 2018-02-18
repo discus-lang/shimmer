@@ -12,12 +12,12 @@ makeXApps xFun xsArgs   = XApp xFun xsArgs
 
 
 -- | Take an application of a function to a list of arguments.
---   TODO(BL): fix rubbish list append complexity.
 takeXApps :: Exp s p -> Maybe (Exp s p, [Exp s p])
 takeXApps xx
  = case xx of
         XApp x1@(XApp _ _) x2
           -> case takeXApps x1 of
+                -- TODO: Fix list append complexity.
                 Just (f1, xs1) -> Just (f1, xs1 ++ x2)
                 Nothing        -> Nothing
 

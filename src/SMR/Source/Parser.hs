@@ -20,8 +20,8 @@ type Parser s p a
 -- Config ---------------------------------------------------------------------
 data Config s p
         = Config
-        { configReadSym :: Text -> Maybe s
-        , configReadPrm :: Text -> Maybe p }
+        { configReadSym  :: Text -> Maybe s
+        , configReadPrm  :: Text -> Maybe p }
 
 
 -- Interface ------------------------------------------------------------------
@@ -41,7 +41,6 @@ parseDecls c ts
          = do   ds      <- pDecls c
                 _       <- pEnd
                 return ds
-
 
 
 -- | Parse a complete expression from the given list of tokens.
@@ -153,6 +152,10 @@ pExpAtom c
  , do   _ <- pPunc '?'
         n <- pNat
         return $ XRef (RNom n)
+
+        -- Text string.
+ , do   tx <- pText
+        return $ XRef (RTxt tx)
 
         -- Named variable with or without index.
  , do   (space, name) <- pName
@@ -319,9 +322,11 @@ pBump
 
 -------------------------------------------------------------------------------
 -- | Parser for a natural number.
-pNat :: Parser s p Integer
-pNat
- = P.from ExBaseNat (takeNatOfToken . valueOfLocated)
+pNat  :: Parser s p Integer
+pNat  =  P.from ExBaseNat  (takeNatOfToken . valueOfLocated)
+
+pText :: Parser s p Text
+pText =  P.from ExBaseText (takeTextOfToken . valueOfLocated)
 
 
 -- | Parser for a name in the given space.

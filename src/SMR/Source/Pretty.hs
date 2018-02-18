@@ -7,6 +7,9 @@ import Data.Monoid
 import Data.Text                                (Text)
 import Data.Text.Lazy.Builder                   (Builder)
 import qualified Data.Text.Lazy.Builder         as B
+import qualified Data.Text                      as T
+import qualified Data.Char                      as Char
+import qualified Numeric                        as Numeric
 
 
 -- Class ----------------------------------------------------------------------
@@ -184,11 +187,36 @@ buildUpsBump ((name, bump), inc)
 buildRef :: (Build s, Build p) => Ref s p -> Builder
 buildRef rr
  = case rr of
-        RMac n  -> "@" <> B.fromText n
-        RSet n  -> "+" <> B.fromText n
         RSym s  -> "%" <> build s
         RPrm p  -> "#" <> build p
+        RTxt t  -> buildText t
+        RMac n  -> "@" <> B.fromText n
+        RSet n  -> "+" <> B.fromText n
         RNom i  -> "?" <> B.fromString (show i)
+
+
+-- | Build a text string, escaping special chars in JSON style.
+buildText :: Text -> Builder
+buildText tx
+ = (B.fromString $ ['"'] ++ escape (T.unpack tx) ++ ['"'])
+ where  escape []               = []
+
+        escape ('\\' : cs)      = '\\' : '\\' : escape cs
+        escape ('\"' : cs)      = '\\' : '\"' : escape cs
+        escape ('\b' : cs)      = '\\' : '\b' : escape cs
+        escape ('\f' : cs)      = '\\' : '\f' : escape cs
+        escape ('\n' : cs)      = '\\' : '\n' : escape cs
+        escape ('\r' : cs)      = '\\' : '\r' : escape cs
+        escape ('\t' : cs)      = '\\' : '\t' : escape cs
+
+        escape (c : cs)
+         | Char.ord c >= 32 && Char.ord c <= 126
+         = c : escape cs
+
+         | otherwise
+         = let  s       = Numeric.showHex (Char.ord c) ""
+                ss      = replicate (4 - length s) '0' ++ s
+           in   "\\u" ++ ss ++ escape cs
 
 
 -- Prim -----------------------------------------------------------------------
@@ -196,5 +224,4 @@ buildRef rr
 buildPrim :: Prim -> Builder
 buildPrim pp
  = B.fromText $ pprPrim pp
-
 

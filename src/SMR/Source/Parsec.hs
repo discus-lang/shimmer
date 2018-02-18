@@ -365,4 +365,3 @@ withDelims p
         kEnd    <- peek
         return  (kStart, x, kEnd)
 
-

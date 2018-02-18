@@ -23,6 +23,9 @@ data Expected t s p
         -- | Expecting a natural number.
         | ExBaseNat
 
+        -- | Expecting a text string.
+        | ExBaseText
+
         -- | Expecting a punctuation character.
         | ExBasePunc    Char
 
@@ -50,6 +53,7 @@ pprExpected bb
         ExBaseEnd       -> "expecting end of input"
         ExBaseNameOf s  -> "expecting name " ++ show s
         ExBaseNat       -> "expecting natural number"
+        ExBaseText      -> "expecting text string"
         ExBasePunc c    -> "expecting " ++ show c
         ExBaseMsg t     -> "expecting " ++ show t
         ExBaseNameAny   -> "expecting name"

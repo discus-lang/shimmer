@@ -53,7 +53,13 @@ lexToken lStart xx
         --  Natural number.
         |  Char.isDigit c
         ,  Just (nat, lEnd, csRest)  <- lexNat lStart (c : cs)
-        -> let  tok      = KNat nat
+        -> let  tok     = KNat nat
+           in   Just (LL lStart lEnd tok, csRest)
+
+        --  Text string.
+        |  c == '\"'
+        ,  Just (tx, lEnd, csRest)   <- lexText lStart cs
+        -> let tok      = KText tx
            in   Just (LL lStart lEnd tok, csRest)
 
         |  otherwise
@@ -104,6 +110,36 @@ lexNat lStart xx
 
         go _ _ _
          = Nothing
+
+
+-- | Lex a string.
+lexText :: Location -> [Char] -> Maybe (Text, Location, [Char])
+lexText lStart xx
+ = go lStart [] xx
+ where
+        go lStart' acc []
+         = Nothing
+
+        go lStart' acc ('\"' : cs)
+         = Just (Text.pack $ reverse acc, lStart', cs)
+
+        go lStart' acc ('\\' : c : cs)
+         = let l' = incCharOfLocation 1 lStart'
+           in  case c of
+                '\"'    -> go l' (c    : acc) cs
+                '\\'    -> go l' (c    : acc) cs
+                'b'     -> go l' ('\b' : acc) cs
+                'f'     -> go l' ('\f' : acc) cs
+                'n'     -> go l' ('\n' : acc) cs
+                'r'     -> go l' ('\r' : acc) cs
+                't'     -> go l' ('\t' : acc) cs
+
+                -- TODO: read hex encoded special chars.
+                _       -> Nothing
+
+        go lStart' acc (c : cs)
+         = let l' = incCharOfLocation 1 lStart'
+           in  go l' (c : acc) cs
 
 
 -- Whitespace -----------------------------------------------------------------
