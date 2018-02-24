@@ -3,11 +3,12 @@
 module SMR.Codec.Peek
         ( peekFileDecls
         , peekDecl
-        , peekExp,   peekKey,     peekParam
-        , peekCar,   peekSnvBind, peekUpsBump
+        , peekExp,     peekKey,     peekParam
+        , peekCar,     peekSnvBind, peekUpsBump
         , peekRef
-        , peekName,  peekBump,    peekNom
-        , peekWord8, peekWord16,  peekWord32,  peekWord64)
+        , peekName,    peekBump,    peekNom
+        , peekWord8,   peekWord16,  peekWord32,  peekWord64
+        , peekFloat32, peekFloat64)
 where
 import SMR.Core.Exp
 import SMR.Prim.Op.Base
@@ -53,12 +54,12 @@ peekDecl :: Peek (Decl Text Prim)
 peekDecl !p0 !n0
  = do   (b0, p1, n1) <- peekWord8 p0 n0
         p1 `seq` case b0 of
-         0xa0
+         0xd0
           -> do (tx,  p2, n2) <- peekName p1 n1
                 (x,   p3, n3) <- peekExp  p2 n2
                 return (DeclMac tx x, p3, n3)
 
-         0xa1
+         0xd1
           -> do (tx,  p2, n2) <- peekName p1 n1
                 (x,   p3, n3) <- peekExp  p2 n2
                 return (DeclSet tx x, p3, n3)
@@ -83,7 +84,7 @@ peekExp !p0 !n0
                 return  (XKey key xx, p3, n3)
 
          0xb2
-          -> do (x1,  p2, n2) <- peekExp p1 n1
+          -> do (x1,  p2, n2) <- peekExp  p1 n1
                 (xs,  p3, n3) <- peekList peekExp p2 n2
                 return  (XApp x1 xs, p3, n3)
 
@@ -94,19 +95,84 @@ peekExp !p0 !n0
 
          0xb4
           -> do (ps,  p2, n2) <- peekList peekParam p1 n1
-                (x,   p3, n3) <- peekExp p2 n2
+                (x,   p3, n3) <- peekExp  p2 n2
                 return  (XAbs ps x, p3, n3)
 
          0xb5
           -> do (cs,  p2, n2) <- peekList peekCar p1 n1
-                (x,   p3, n3) <- peekExp p2 n2
+                (x,   p3, n3) <- peekExp  p2 n2
                 return  (XSub cs x, p3, n3)
 
-         -- Short circuit XRef.
-         _
-          -> do (r,   p1', n1') <- peekRef p0 n0
-                return (XRef r, p1', n1')
+         _ -> case b0 .&. 0x0f0 of
+                -- Short Variable Name.
+                0x80
+                 -> do  (tx, p2, n2) <- peekVar p0 n0
+                        return (XVar tx 0, p2, n2)
+
+                -- Short Abstraction.
+                0x90    -> peekAbs p0 n0
+
+                -- Short Application.
+                0xa0    -> peekApp p0 n0
+
+                -- Short Circuit to Ref.
+                0xc0
+                 -> do  (r, p2, n2) <- peekRef p0 n0
+                        return (XRef r, p2, n2)
+
+                _       -> error "peekExp: invalid header"
 {-# NOINLINE peekExp #-}
+
+
+-- | Peek a short abstraction from memory.
+peekAbs :: Peek (Exp Text Prim)
+peekAbs p0 n0
+ | n0 >= 1
+ = do   (b0, p1, n1) <- peekWord8' p0 n0
+
+        when ((b0 .&. 0x0f0) /= 0x90)
+         $ error "peekAbs: invalid header"
+
+        go    (fromIntegral $ b0 .&. 0x00f) [] p1 n1
+
+ | otherwise
+ = error "peekAbs: invalid header"
+
+ where  go (0 :: Int) acc p n
+         = do   (x, p2, n2) <- peekExp p n
+                return (XAbs (reverse acc) x, p2, n2)
+
+        go i acc p n
+         = do   (x, p', n') <- peekParam p n
+                go (i - 1) (x : acc) p' n'
+        {-# NOINLINE go #-}
+{-# INLINE peekAbs #-}
+
+
+-- | Peek a short application from memory.
+peekApp :: Peek (Exp Text Prim)
+peekApp p0 n0
+ | n0 >= 1
+ = do   (b0, p1, n1) <- peekWord8' p0 n0
+        when ((b0 .&. 0x0f0) /= 0xa0)
+         $ error "peekApp: invalid header"
+
+        (x0, p2, n2) <- peekExp    p1 n1
+
+        go  x0 (fromIntegral $ b0 .&. 0x00f) [] p2 n2
+
+ | otherwise
+ = error "peekApp: invalid header"
+
+ where  go x0 (0 :: Int) acc p n
+         = do   (x, p2, n2) <- peekExp p n
+                return (XApp x0 (reverse acc), p2, n2)
+
+        go x0 i acc p n
+         = do   (x, p', n') <- peekExp p n
+                go x0 (i - 1) (x : acc) p' n'
+        {-# NOINLINE go #-}
+{-# INLINE peekApp #-}
 
 
 -- | Peek a `Key` from memory.
@@ -114,8 +180,8 @@ peekKey :: Peek Key
 peekKey !p0 !n0
  = do   (b0, p1, n1) <- peekWord8 p0 n0
         p1 `seq` case b0 of
-         0xba   -> return (KBox, p1, n1)
-         0xbb   -> return (KRun, p1, n1)
+         0xb6   -> return (KBox, p1, n1)
+         0xb7   -> return (KRun, p1, n1)
          _      -> error $ "peekKey: invalid header"
 {-# INLINE peekKey #-}
 
@@ -125,11 +191,11 @@ peekParam :: Peek Param
 peekParam !p0 !n0
  = do   (b0, p1, n1) <- peekWord8 p0 n0
         p1 `seq` case b0 of
-         0xbc
+         0xb8
           -> do (tx, p2, n2) <- peekName p1 n1
                 return (PParam tx PVal, p2, n2)
 
-         0xbd
+         0xb9
           -> do (tx, p2, n2) <- peekName p1 n1
                 return (PParam tx PExp, p2, n2)
 
@@ -142,15 +208,15 @@ peekCar :: Peek (Car Text Prim)
 peekCar !p0 !n0
  = do   (b0, p1, n1) <- peekWord8 p0 n0
         p1 `seq` case b0 of
-         0xc1
+         0xba
           -> do (sbs, p2, n2) <- peekList peekSnvBind p1 n1
                 return (CSim (SSnv sbs), p2, n2)
 
-         0xc2
+         0xbb
           -> do (sbs, p2, n2) <- peekList peekSnvBind p1 n1
                 return (CRec (SSnv sbs), p2, n2)
 
-         0xc3
+         0xbc
           -> do (ups, p2, n2) <- peekList peekUpsBump p1 n1
                 return (CUps (UUps ups), p2, n2)
 
@@ -163,13 +229,13 @@ peekSnvBind :: Peek (SnvBind Text Prim)
 peekSnvBind !p0 !n0
  = do   (b0, p1, n1) <- peekWord8 p0 n0
         p1 `seq` case b0 of
-         0xca
+         0xbd
           -> do (n, p2, n2) <- peekName p1 n1
                 (d, p3, n3) <- peekBump p2 n2
                 (x, p4, n4) <- peekExp  p3 n3
                 return (BindVar n d x, p4, n4)
 
-         0xcb
+         0xbe
           -> do (n, p2, n2) <- peekNom  p1 n1
                 (x, p3, n3) <- peekExp  p2 n2
                 return (BindNom n x,   p3, n3)
@@ -182,7 +248,7 @@ peekSnvBind !p0 !n0
 peekUpsBump :: Peek UpsBump
 peekUpsBump !p0 !n0
  = do   (b0, p1, n1) <- peekWord8 p0 n0
-        when (b0 /= 0xcc) $ error $ "peekUpsBump: invalid header"
+        when (b0 /= 0xbf) $ error $ "peekUpsBump: invalid header"
         (n,  p2, n2) <- peekName  p1 n1
         (d,  p3, n3) <- peekBump  p2 n2
         (i,  p4, n4) <- peekBump  p3 n3
@@ -196,27 +262,27 @@ peekRef :: Peek (Ref Text Prim)
 peekRef !p0 !n0
  = do   (b0, p1, n1) <- peekWord8 p0 n0
         p1 `seq` case b0 of
-         0xd0
+         0xc0
           -> do (tx, p2, n2) <- peekText p1 n1
                 return (RSym tx, p2, n2)
 
-         0xd1
+         0xc1
           -> do (m,  p2, n2) <- peekPrim p1 n1
                 return (RPrm m,  p2, n2)
 
-         0xd2
+         0xc2
           -> do (tx, p2, n2) <- peekText p1 n1
                 return (RTxt tx, p2, n2)
 
-         0xd3
+         0xc3
           -> do (tx, p2, n2) <- peekText p1 n1
                 return (RMac tx, p2, n2)
 
-         0xd4
+         0xc4
           -> do (tx, p2, n2) <- peekText p1 n1
                 return (RSet tx, p2, n2)
 
-         0xd5
+         0xc5
           -> do (i,  p2, n2) <- peekNom  p1 n1
                 return (RNom i,  p2, n2)
 
@@ -258,11 +324,56 @@ peekPrim !p0 !n0
  | n0 >= 1
  = do   (b0, p1, n1) <- peekWord8' p0 n0
         p1 `seq` case b0 of
-         0xda   -> return (PrimTagUnit,         p1, n1)
-         0xdb   -> return (PrimLitBool True,    p1, n1)
-         0xdc   -> return (PrimLitBool False,   p1, n1)
+         0xe0   -> return (PrimTagUnit,         p1, n1)
+         0xe1   -> return (PrimTagList,         p1, n1)
+         0xe2   -> return (PrimLitBool True,    p1, n1)
+         0xe3   -> return (PrimLitBool False,   p1, n1)
 
-         0xdf
+         -- WordN ----
+         0xe4
+          -> do (w8, p2, n2) <- peekWord8 p1 n1
+                return (PrimLitWord8   w8, p2, n2)
+
+         0xe5
+          -> do (w16, p2, n2) <- peekWord16 p1 n1
+                return (PrimLitWord16 w16, p2, n2)
+
+         0xe6
+          -> do (w32, p2, n2) <- peekWord32 p1 n1
+                return (PrimLitWord32 w32, p2, n2)
+
+         0xe7
+          -> do (w64, p2, n2) <- peekWord64 p1 n1
+                return (PrimLitWord64 w64, p2, n2)
+
+         -- IntN -----
+         0xe8
+          -> do (w8, p2, n2)  <- peekWord8 p1 n1
+                return (PrimLitInt8  $ fromIntegral  w8, p2, n2)
+
+         0xe9
+          -> do (w16, p2, n2) <- peekWord16 p1 n1
+                return (PrimLitInt16 $ fromIntegral w16, p2, n2)
+
+         0xea
+          -> do (w32, p2, n2) <- peekWord32 p1 n1
+                return (PrimLitInt32 $ fromIntegral w32, p2, n2)
+
+         0xeb
+          -> do (w64, p2, n2) <- peekWord64 p1 n1
+                return (PrimLitInt64 $ fromIntegral w64, p2, n2)
+
+         -- FloatN -----
+         0xec
+          -> do (f32, p2, n2) <- peekFloat32 p1 n1
+                return (PrimLitFloat32 f32, p2, n2)
+
+         0xed
+          -> do (f64, p2, n2) <- peekFloat64 p1 n1
+                return (PrimLitFloat64 f64, p2, n2)
+
+         -----------
+         0xee
           -> do (tx, p2, n2) <- peekText p1 n1
                 return  (PrimOp tx, p2, n2)
 
@@ -299,18 +410,20 @@ peekList :: Peek a -> Peek [a]
 peekList peekA p0 n0
  | n0 >= 1
  = do   (b0, _p1, n1) <- peekWord8' p0 n0
+
+        -- TODO: handle small sizes.
         case b0 of
-         0xf1
+         0xfd
           | n1 >= 1
           -> do nElems <- fmap fromIntegral $ peek8  p0 1
                 go nElems [] (F.plusPtr p0 2) (n1 - 1)
 
-         0xf2
+         0xfe
           | n1 >= 2
           -> do nElems <- fmap fromIntegral $ peek16 p0 1
                 go nElems [] (F.plusPtr p0 3) (n1 - 2)
 
-         0xf3
+         0xff
           | n1 >= 4
           -> do nElems <- fmap fromIntegral $ peek32 p0 1
                 go nElems [] (F.plusPtr p0 5) (n1 - 4)
@@ -332,13 +445,31 @@ peekList peekA p0 n0
 
 
 ---------------------------------------------------------------------------------------------------
+-- | Peek a short variable name from memory.
+peekVar  :: Peek Text
+peekVar !p0 !n0
+ | n0 >= 1
+ = do   (b0, p1, n1) <- peekWord8' p0 n0
+
+        when ((b0 .&. 0x0f0) /= 0x80)
+         $ error "peekVar: invalid header"
+
+        let nBytes  = fromIntegral $ b0 .&. 0x0f
+        buf     <- F.mallocBytes nBytes
+        F.copyBytes buf (F.castPtr p1) nBytes
+        bs      <- BS.unsafePackMallocCStringLen (buf, nBytes)
+        return (T.decodeUtf8 bs, F.plusPtr p1 nBytes, n1 - nBytes)
+
+
 -- | Peek a text value from memory as UTF8 characters.
 peekText :: Peek Text
 peekText !p0 !n0
  | n0 >= 1
  = do   (b0, _, n1) <- peekWord8' p0 n0
         case b0 of
-         0xf1
+
+         -- TODO: handle small sizes.
+         0xfd
           | n1 >= 1
           -> do nBytes  <- fmap fromIntegral $ peek8 p0 1
                 buf     <- F.mallocBytes nBytes
@@ -349,7 +480,7 @@ peekText !p0 !n0
                 bs      <- BS.unsafePackMallocCStringLen (buf, nBytes)
                 return (T.decodeUtf8 bs, F.plusPtr p2 nBytes, n2 - nBytes)
 
-         0xf2
+         0xfe
           -> do nBytes  <- fmap fromIntegral $ peek16 p0 1
                 buf     <- F.mallocBytes nBytes
                 let p2  =  F.plusPtr p0 3
@@ -359,7 +490,7 @@ peekText !p0 !n0
                 bs      <- BS.unsafePackMallocCStringLen (buf, nBytes)
                 return (T.decodeUtf8 bs, F.plusPtr p2 nBytes, n2 - nBytes)
 
-         0xf3
+         0xff
           -> do nBytes  <- fmap fromIntegral $ peek32 p0 1
                 buf     <- F.mallocBytes nBytes
                 let p2  =  F.plusPtr p0 5
@@ -374,6 +505,7 @@ peekText !p0 !n0
  | otherwise
  = error "peekText: pointer out of range"
 {-# NOINLINE peekText #-}
+
 
 ---------------------------------------------------------------------------------------------------
 -- | Peek a `Word8` from memory, in network byte order, with bounds check.
@@ -442,7 +574,7 @@ peekWord64 p n
 {-# NOINLINE peekWord64 #-}
 
 
--- | Peek a `Word64` from memory, in network byte order, in network byte order.
+-- | Peek a `Word64` from memory, in network byte order.
 peekWord64' :: Peek Word64
 peekWord64' p n
  = do   b0 <- fmap to64 $ peek8 p 0
@@ -463,6 +595,34 @@ peekWord64' p n
                 .|. b7
         return (w, F.plusPtr p 8, n - 8)
 {-# INLINE peekWord64' #-}
+
+
+-- | Peek a `Float32` from memory, in network byte order, with bounds check.
+peekFloat32  :: Peek Float
+peekFloat32 p0 n0
+ | n0 >= 8
+ = F.allocaBytes 4 $ \p'
+ -> do  (w32, p1, n1) <- peekWord32' p0 n0
+        F.poke (F.castPtr p' :: Ptr Word32) w32
+        f32 <- F.peek (F.castPtr p' :: Ptr Float)
+        return (f32, p1, n1)
+
+ | otherwise    = error "peekWord32: pointer out of bounds"
+{-# NOINLINE peekFloat32 #-}
+
+
+-- | Peek a `Float64` from memory, in network byte order, with bounds check.
+peekFloat64  :: Peek Double
+peekFloat64 p0 n0
+ | n0 >= 8
+ = F.allocaBytes 8 $ \p'
+ -> do  (w64, p1, n1) <- peekWord64' p0 n0
+        F.poke (F.castPtr p' :: Ptr Word64) w64
+        f64 <- F.peek (F.castPtr p' :: Ptr Double)
+        return (f64, p1, n1)
+
+ | otherwise    = error "peekWord64: pointer out of bounds"
+{-# NOINLINE peekFloat64 #-}
 
 
 to16  :: Word8 -> Word16

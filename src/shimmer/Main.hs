@@ -13,10 +13,11 @@ import qualified Foreign.Marshal.Alloc          as Foreign
 import qualified System.Environment             as System
 import qualified System.FilePath                as System
 import qualified System.IO                      as System
+import qualified Data.Text.Lazy                 as TL
 import qualified Data.Text.Lazy.IO              as TL
 import qualified Data.Text.Lazy.Builder         as BL
 import qualified Data.Maybe                     as Maybe
-
+import Data.Monoid
 
 -------------------------------------------------------------------------------
 main :: IO ()
@@ -80,7 +81,10 @@ runConvert pathSrc pathDst
  | System.takeExtension pathSrc == ".sms"
  , System.takeExtension pathDst == ".smr"
  = do   decls   <- Driver.runLoadFileDecls pathSrc
-        TL.putStr $ BL.toLazyText $ mconcat $ map Source.buildDecl decls
+        TL.writeFile pathDst
+                $ BL.toLazyText
+                $ mconcat
+                $ [ Source.buildDecl d <> BL.fromString "\n" | d <- decls]
 
  | otherwise
  = error "runConvert: cannot convert"

@@ -11,9 +11,6 @@ description:    The Reflective Lambda Machine
 synopsis:       The Reflective Lambda Machine
 
 library
- hs-source-dirs:
-        src
-
  ghc-options:
         -O2
 

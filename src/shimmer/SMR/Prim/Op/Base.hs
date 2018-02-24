@@ -18,16 +18,33 @@ where
 import SMR.Core.Exp
 import SMR.Core.World
 import Data.Text        (Text)
-
+import Data.Int
+import Data.Word
 
 -------------------------------------------------------------------------------
 -- | Primitive values and operators.
 data Prim
-        = PrimOp        Text
-        | PrimLitBool   Bool
-        | PrimLitNat    Integer
-        | PrimTagUnit
+        = PrimTagUnit
         | PrimTagList
+
+        | PrimLitBool           Bool
+        | PrimLitNat            Integer
+        | PrimLitInt            Integer
+
+        | PrimLitWord8          Word8
+        | PrimLitWord16         Word16
+        | PrimLitWord32         Word32
+        | PrimLitWord64         Word64
+
+        | PrimLitInt8           Int8
+        | PrimLitInt16          Int16
+        | PrimLitInt32          Int32
+        | PrimLitInt64          Int64
+
+        | PrimLitFloat32        Float
+        | PrimLitFloat64        Double
+
+        | PrimOp                Text
         deriving (Eq, Ord, Show)
 
 

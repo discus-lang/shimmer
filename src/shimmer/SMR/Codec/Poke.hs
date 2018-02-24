@@ -3,16 +3,18 @@
 module SMR.Codec.Poke
         ( pokeFileDecls
         , pokeDecl
-        , pokeExp,   pokeKey,      pokeParam
-        , pokeCar,   pokeSnvBind,  pokeUpsBump
+        , pokeExp,     pokeKey,      pokeParam
+        , pokeCar,     pokeSnvBind,  pokeUpsBump
         , pokeRef
-        , pokeName,  pokeBump,     pokeNom
-        , pokeWord8, pokeWord16,   pokeWord32,  pokeWord64)
+        , pokeName,    pokeBump,     pokeNom
+        , pokeWord8,   pokeWord16,   pokeWord32,  pokeWord64
+        , pokeFloat32, pokeFloat64)
 where
 import SMR.Core.Exp
 import SMR.Prim.Op.Base
 
 import qualified Foreign.Marshal.Utils          as F
+import qualified Foreign.Marshal.Alloc          as F
 import qualified Foreign.Storable               as F
 import qualified Foreign.Ptr                    as F
 
@@ -243,24 +245,31 @@ pokePrim !pp
  = case pp of
         PrimTagUnit             -> pokeWord8 0xe0
         PrimTagList             -> pokeWord8 0xe1
+
         PrimLitBool True        -> pokeWord8 0xe2
         PrimLitBool False       -> pokeWord8 0xe3
 
+        PrimLitWord8  w8        -> pokeWord8 0xe4 >=> pokeWord8  w8
+        PrimLitWord16 w16       -> pokeWord8 0xe5 >=> pokeWord16 w16
+        PrimLitWord32 w32       -> pokeWord8 0xe6 >=> pokeWord32 w32
+        PrimLitWord64 w64       -> pokeWord8 0xe7 >=> pokeWord64 w64
+
+        PrimLitInt8   i8        -> pokeWord8 0xe8 >=> pokeWord8  (fromIntegral i8)
+        PrimLitInt16  i16       -> pokeWord8 0xe9 >=> pokeWord16 (fromIntegral i16)
+        PrimLitInt32  i32       -> pokeWord8 0xea >=> pokeWord32 (fromIntegral i32)
+        PrimLitInt64  i64       -> pokeWord8 0xeb >=> pokeWord64 (fromIntegral i64)
+
+        PrimLitFloat32 f        -> pokeWord8 0xec >=> pokeFloat32 f
+        PrimLitFloat64 f        -> pokeWord8 0xed >=> pokeFloat64 f
+
         PrimOp tx               -> pokeWord8 0xee >=> pokeText tx
 
-        -- Integers are currently squashed into Word64s.
-        PrimLitNat n
-         -> pokeWord8 0xef
-                >=> pokeName (T.pack "nat")
-                >=> pokeList pokeWord8
-                        [ fromIntegral $ (n .&. 0xff00000000000000) `shiftR` 56
-                        , fromIntegral $ (n .&. 0x00ff000000000000) `shiftR` 48
-                        , fromIntegral $ (n .&. 0x0000ff0000000000) `shiftR` 40
-                        , fromIntegral $ (n .&. 0x000000ff00000000) `shiftR` 32
-                        , fromIntegral $ (n .&. 0x00000000ff000000) `shiftR` 24
-                        , fromIntegral $ (n .&. 0x0000000000ff0000) `shiftR` 16
-                        , fromIntegral $ (n .&. 0x000000000000ff00) `shiftR` 8
-                        , fromIntegral $ (n .&. 0x00000000000000ff)]
+        -- TODO: handle arbitrary length nats instead of squashing into Word64.
+        PrimLitNat n            -> pokeWord8 0xe7 >=> pokeWord64 (fromIntegral n)
+
+        -- TOOD: handle arbitrary length ints instead of squashing into Word64.
+        PrimLitInt n            -> pokeWord8 0xeb >=> pokeWord64 (fromIntegral n)
+
 
 {-# INLINE pokePrim #-}
 
@@ -372,6 +381,26 @@ pokeWord64 w p
         poke8 p 7 $ from64 $ (w .&. 0x00000000000000ff)
         return (F.plusPtr p 8)
 {-# INLINE pokeWord64 #-}
+
+
+-- | Poke a `Float32` into memory, in network byte order.
+pokeFloat32 :: Poke Float
+pokeFloat32 f p
+ = F.allocaBytes 4 $ \p'
+ -> do  F.poke (F.castPtr p' :: Ptr Float) f
+        w32 <- F.peek (F.castPtr p' :: Ptr Word32)
+        pokeWord32 w32 p
+{-# INLINE pokeFloat32 #-}
+
+
+-- | Poke a `Float64` into memory, in network byte order.
+pokeFloat64 :: Poke Double
+pokeFloat64 f p
+ = F.allocaBytes 8 $ \p'
+ -> do  F.poke (F.castPtr p' :: Ptr Double) f
+        w64 <- F.peek (F.castPtr p' :: Ptr Word64)
+        pokeWord64 w64 p
+{-# INLINE pokeFloat64 #-}
 
 
 from16 :: Word16 -> Word8
