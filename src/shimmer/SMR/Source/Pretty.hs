@@ -6,6 +6,7 @@ import Data.Monoid
 import Data.Text                                (Text)
 import Data.Text.Lazy.Builder                   (Builder)
 import qualified Data.Text.Lazy.Builder         as B
+import qualified Data.Text.Lazy                 as L
 import qualified Data.Text                      as T
 import qualified Data.Char                      as Char
 import qualified Numeric                        as Numeric
@@ -22,6 +23,9 @@ instance Build Text where
 instance Build Prim where
  build pp = buildPrim pp
 
+instance (Build s, Build p) => Build (Exp s p) where
+ build xx = buildExp CtxTop xx
+
 
 -- | Context we're currently in when pretty printing.
 data Ctx
@@ -35,6 +39,12 @@ data Ctx
 parens :: Builder -> Builder
 parens bb
  = "(" <> bb <> ")"
+
+
+-- | Pretty print a thing as strict `Text`.
+pretty :: Build a => a -> Text
+pretty x
+ = L.toStrict $ B.toLazyText $ build x
 
 
 -- Decl -----------------------------------------------------------------------

@@ -1,4 +1,13 @@
-module SMR.Prim.Op where
+module SMR.Prim.Op
+        ( primNames
+        , primOps
+        , primOpsBool
+        , primOpsList
+        , primOpsMatch
+        , primOpsNat
+        , primOpsNom
+        , primOpsSym)
+where
 import SMR.Prim.Op.Base
 import SMR.Prim.Op.Bool
 import SMR.Prim.Op.Nat
@@ -11,8 +20,15 @@ import Data.Set                 (Set)
 import qualified Data.Set       as Set
 
 
-primEvals :: [PrimEval Text Prim w]
-primEvals
+-- | Set containing textual names of all the primitive operators.
+primNames :: Set Text
+primNames
+ = Set.fromList [ n | PrimOp n <- map primEvalName $ primOps ]
+
+
+-- | Evaluators for all the primitive operators.
+primOps :: [PrimEval Text Prim w]
+primOps
  = concat
         [ primOpsBool
         , primOpsNat
@@ -22,6 +38,3 @@ primEvals
         , primOpsMatch ]
 
 
-primOpTextNames :: Set Text
-primOpTextNames
- = Set.fromList [ n | PrimOp n <- map primEvalName $ primEvals ]

@@ -31,7 +31,7 @@ runLoadFileDecls path
         let config
                 = Source.Config
                 { Source.configReadSym  = Just
-                , Source.configReadPrm  = Prim.readPrim Prim.primOpTextNames }
+                , Source.configReadPrm  = Prim.readPrim Prim.primNames }
 
         case Source.parseDecls config ts of
          Left err       -> error $ show err

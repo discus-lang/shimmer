@@ -1,7 +1,9 @@
 {-# LANGUAGE BangPatterns #-}
 module SMR.Core.Step
         ( Config        (..)
+        , World         (..)
         , Result        (..)
+        , newWorld
         , steps
         , step)
 where

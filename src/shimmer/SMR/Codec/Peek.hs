@@ -1,14 +1,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ExplicitNamespaces #-}
+{-# LANGUAGE FlexibleInstances #-}
 module SMR.Codec.Peek
-        ( peekFileDecls
-        , peekDecl
-        , peekExp,     peekKey,     peekParam
-        , peekCar,     peekSnvBind, peekUpsBump
-        , peekRef
-        , peekName,    peekBump,    peekNom
-        , peekWord8,   peekWord16,  peekWord32,  peekWord64
-        , peekFloat32, peekFloat64)
+        ( Peekable (..)
+        , type Peek
+        , peekFileDecls)
 where
 import SMR.Core.Exp
 import SMR.Prim.Op.Base
@@ -30,7 +27,24 @@ import Data.Word
 import Numeric
 
 ---------------------------------------------------------------------------------------------------
+-- | Type of a function that peeks an `a` thing from memory.
+--
+--   It takes the current pointer and count of remaining bytes in the buffer,
+--   returns new pointer and remaining bytes.
+--
 type Peek a = Ptr Word8 -> Int -> IO (a, Ptr Word8, Int)
+
+class Peekable a where
+ peek :: Peek a
+
+instance Peekable (Decl Text Prim) where
+ peek = peekDecl
+
+instance Peekable (Exp Text Prim) where
+ peek = peekExp
+
+instance Peekable (Ref Text Prim) where
+ peek = peekRef
 
 
 ---------------------------------------------------------------------------------------------------
@@ -693,4 +707,4 @@ failHeaderByte fn b n
  = error
  $ "shimmer." ++ fn
         ++ " invalid header byte "
-        ++ showHex b "" ++ "@-" ++ show n
+        ++ showHex b "" ++ "@-" ++ showHex n ""

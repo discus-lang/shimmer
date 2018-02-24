@@ -152,7 +152,7 @@ replPrims state
             ++ Text.unpack (Prim.primEvalDesc p)
 
            | p@(Prim.PrimEval { Prim.primEvalName = Prim.PrimOp name })
-                <- Prim.primEvals ]
+                <- Prim.primOps ]
 
         replLoop state
 
@@ -352,7 +352,7 @@ replLoadExp state str eat
                         $ [ (n, x) | DeclMac n x <- stateDecls state ]
 
                 prims   = Map.fromList
-                        $ [ (Prim.primEvalName p, p) | p <- Prim.primEvals ]
+                        $ [ (Prim.primEvalName p, p) | p <- Prim.primOps ]
 
                 config  = Step.Config
                         { Step.configUnderLambdas = True
@@ -372,7 +372,7 @@ replParseExp _state str
         let config
                 = Source.Config
                 { Source.configReadSym  = Just
-                , Source.configReadPrm  = Prim.readPrim Prim.primOpTextNames }
+                , Source.configReadPrm  = Prim.readPrim Prim.primNames }
 
         case Source.parseExp config ts of
          Left err

@@ -1,14 +1,11 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE ExplicitNamespaces #-}
+{-# LANGUAGE FlexibleInstances #-}
 module SMR.Codec.Poke
-        ( pokeFileDecls
-        , pokeDecl
-        , pokeExp,     pokeKey,      pokeParam
-        , pokeCar,     pokeSnvBind,  pokeUpsBump
-        , pokeRef
-        , pokeName,    pokeBump,     pokeNom
-        , pokeWord8,   pokeWord16,   pokeWord32,  pokeWord64
-        , pokeFloat32, pokeFloat64)
+        ( Pokeable (..)
+        , type Poke
+        , pokeFileDecls)
 where
 import SMR.Core.Exp
 import SMR.Prim.Op.Base
@@ -30,7 +27,24 @@ import Data.Word
 
 
 ---------------------------------------------------------------------------------------------------
+-- | Type of a function that pokes an `a` thing into memory.
+--
+--   It takes a pointer to the next byte to use,
+--   and returns an updated pointer.
+--
 type Poke a = a -> Ptr Word8 -> IO (Ptr Word8)
+
+class Pokeable a where
+ poke :: Poke a
+
+instance Pokeable (Decl Text Prim) where
+ poke = pokeDecl
+
+instance Pokeable (Exp Text Prim) where
+ poke = pokeExp
+
+instance Pokeable (Ref Text Prim) where
+ poke = pokeRef
 
 
 ---------------------------------------------------------------------------------------------------

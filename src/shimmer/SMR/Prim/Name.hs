@@ -42,18 +42,15 @@ pprPrim pp
         PrimLitWord32 w    -> Text.pack $ "w32'" ++ showHex w ""
         PrimLitWord64 w    -> Text.pack $ "w64'" ++ showHex w ""
 
-        PrimLitInt8   i    -> Text.pack $ "i8'"  ++ showHex i ""
-        PrimLitInt16  i    -> Text.pack $ "i16'" ++ showHex i ""
-        PrimLitInt32  i    -> Text.pack $ "i32'" ++ showHex i ""
-        PrimLitInt64  i    -> Text.pack $ "i64'" ++ showHex i ""
+        PrimLitInt8   i    -> Text.pack $ "i8'"  ++ show i
+        PrimLitInt16  i    -> Text.pack $ "i16'" ++ show i
+        PrimLitInt32  i    -> Text.pack $ "i32'" ++ show i
+        PrimLitInt64  i    -> Text.pack $ "i64'" ++ show i
 
         PrimLitFloat32 f   -> Text.pack $ "f32'" ++ show f
         PrimLitFloat64 f   -> Text.pack $ "f64'" ++ show f
 
         PrimOp op          -> op
-
-
-
 
 
 -- | Parse a primitive name, without the leading '#'.

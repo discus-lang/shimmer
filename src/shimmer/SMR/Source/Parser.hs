@@ -13,11 +13,13 @@ import qualified SMR.Data.Bag           as Bag
 import qualified Data.Text              as Text
 
 
+-------------------------------------------------------------------------------
 type Parser s p a
         = P.Parser (Located Token) (Expected (Located Token) s p) a
 
+type Error s p
+         = ParseError (Located Token) (Expected (Located Token) s p)
 
--- Config ---------------------------------------------------------------------
 data Config s p
         = Config
         { configReadSym  :: Text -> Maybe s
@@ -25,11 +27,11 @@ data Config s p
 
 
 -- Interface ------------------------------------------------------------------
+-- | Parse some Shimmer declarations from a list of tokens.
 parseDecls
-        :: Config s p
-        -> [Located Token]
-        -> Either (ParseError (Located Token) (Expected (Located Token) s p))
-                  [Decl s p]
+        :: Config s p           -- ^ Primop configration.
+        -> [Located Token]      -- ^ Tokens to parse.
+        -> Either (Error s p) [Decl s p]
 parseDecls c ts
  = case P.parse pDeclsEnd ts of
         P.ParseSkip    es       -> Left $ ParseError (Bag.toList es)
@@ -43,12 +45,11 @@ parseDecls c ts
                 return ds
 
 
--- | Parse a complete expression from the given list of tokens.
+-- | Parse a Shimmer expression from a list of tokens.
 parseExp
-        :: Config s p
-        -> [Located Token]
-        -> Either (ParseError (Located Token) (Expected (Located Token) s p))
-                  (Exp s p)
+        :: Config s p           -- ^ Primop configuration.
+        -> [Located Token]      -- ^ Tokens to parse.
+        -> Either (Error s p) (Exp s p)
 parseExp c ts
  = case P.parse pExpEnd ts of
         P.ParseSkip    es       -> Left $ ParseError (Bag.toList es)
@@ -63,11 +64,13 @@ parseExp c ts
 
 
 -- Decl -----------------------------------------------------------------------
+-- | Parser for a list of declarations.
 pDecls  :: Config s p -> Parser s p [Decl s p]
 pDecls c
  =      P.some (pDecl c)
 
 
+-- | Parser for a single declaration.
 pDecl   :: Config s p -> Parser s p (Decl s p)
 pDecl c
  = P.alts
@@ -89,6 +92,7 @@ pDecl c
 
 
 -- Exp ------------------------------------------------------------------------
+-- | Parser for an expression.
 pExp :: Config s p -> Parser s p (Exp s p)
 pExp c
         -- Abstraction.
@@ -241,7 +245,9 @@ pTrainCar c
 -- Snv ------------------------------------------------------------------------
 -- | Parser for a substitution environment.
 --
---   Snv   ::= '[' Bind*, ']'
+-- @
+-- Snv   ::= '[' Bind*, ']'
+-- @
 --
 pCarSimRec :: Config s p -> Parser s p (Car s p)
 pCarSimRec c
@@ -262,8 +268,10 @@ pCarSimRec c
 
 -- | Parser for a binding.
 --
---   Bind ::= Name '=' Exp
---         |  Name '^' Nat '=' Exp
+-- @
+-- Bind ::= Name '=' Exp
+--       |  Name '^' Nat '=' Exp
+-- @
 --
 pBind   :: Config s p -> Parser s p (SnvBind s p)
 pBind c
@@ -290,7 +298,9 @@ pBind c
 -- Ups ------------------------------------------------------------------------
 -- | Parser for an ups.
 --
---   Ups  ::= '{' Bump*, '}'
+-- @
+-- Ups  ::= '{' Bump*, '}'
+-- @
 --
 pUps :: Parser s p Ups
 pUps
@@ -302,9 +312,10 @@ pUps
 
 -- | Parser for a bump.
 --
---   Bump ::= Name ':' Nat
---         |  Name '^' Nat ':' Nat
---
+-- @
+-- Bump ::= Name ':' Nat
+--       |  Name '^' Nat ':' Nat
+-- @
 pBump :: Parser s p UpsBump
 pBump
  = do   name    <- pNameOfSpace SVar
@@ -325,11 +336,13 @@ pBump
 pNat  :: Parser s p Integer
 pNat  =  P.from ExBaseNat  (takeNatOfToken . valueOfLocated)
 
+
+-- | Parser for a text string.
 pText :: Parser s p Text
 pText =  P.from ExBaseText (takeTextOfToken . valueOfLocated)
 
 
--- | Parser for a name in the given space.
+-- | Parser for a name in the given name space.
 pNameOfSpace :: Space -> Parser s p Text
 pNameOfSpace s
  = P.from (ExBaseNameOf s) (takeNameOfToken s . valueOfLocated)

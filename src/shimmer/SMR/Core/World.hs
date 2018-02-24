@@ -14,8 +14,8 @@ data World w
 
 
 -- | Initialize a new world.
-worldInit :: w -> IO (World w)
-worldInit w
+newWorld :: w -> IO (World w)
+newWorld w
  = do   refNomGen       <- newIORef 0
         return  $ World
                 { worldNomGen   = refNomGen

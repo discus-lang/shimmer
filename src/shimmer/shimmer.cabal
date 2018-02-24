@@ -30,20 +30,11 @@ library
 
         SMR.Core.Exp
         SMR.Core.Step
-        SMR.Core.World
 
         SMR.Data.Bag
         SMR.Data.Located
 
         SMR.Prim.Name
-
-        SMR.Prim.Op.Base
-        SMR.Prim.Op.Bool
-        SMR.Prim.Op.List
-        SMR.Prim.Op.Match
-        SMR.Prim.Op.Nat
-        SMR.Prim.Op.Nom
-        SMR.Prim.Op.Sym
         SMR.Prim.Op
 
         SMR.Source.Expected
@@ -59,11 +50,20 @@ library
         SMR.CLI.Help
         SMR.CLI.Repl
 
+        SMR.Core.World
+
         SMR.Core.Exp.Base
         SMR.Core.Exp.Compounds
         SMR.Core.Exp.Push
         SMR.Core.Exp.Train
 
+        SMR.Prim.Op.Base
+        SMR.Prim.Op.Bool
+        SMR.Prim.Op.List
+        SMR.Prim.Op.Match
+        SMR.Prim.Op.Nat
+        SMR.Prim.Op.Nom
+        SMR.Prim.Op.Sym
 
  extensions:
         PatternGuards

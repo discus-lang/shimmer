@@ -51,7 +51,7 @@ runCheck path
 -------------------------------------------------------------------------------
 runRepl :: Maybe FilePath -> IO ()
 runRepl mPath
- = do   world <- World.worldInit ()
+ = do   world <- World.newWorld ()
         Repl.replStart
          $ Repl.State
          { Repl.stateMode   = Repl.ModeNone
@@ -68,7 +68,7 @@ runConvert pathSrc pathDst
  , System.takeExtension pathDst == ".sms"
  = do
         decls   <- Driver.runLoadFileDecls pathSrc
-        let len = Codec.sizeOfFile decls
+        let len = Codec.sizeOfFileDecls decls
         Foreign.allocaBytes len $ \pBuf
          -> do  _ <- Codec.pokeFileDecls decls pBuf
                 h <- System.openBinaryFile pathDst System.WriteMode
