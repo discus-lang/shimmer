@@ -39,6 +39,8 @@ type Peek a = Ptr Word8 -> Int -> IO (a, Ptr Word8, Int)
 
 ---------------------------------------------------------------------------------------------------
 -- | Peek a list of `Decl` from memory, including the SMR file header.
+--
+--   If the packed data is malformed then `error`.
 peekFileDecls :: Peek [Decl Text Prim]
 peekFileDecls !p0 !n0
  = do   (b0, p1, n1) <- peekWord8 p0 n0
@@ -54,6 +56,8 @@ peekFileDecls !p0 !n0
 
 
 -- | Peek a `Decl` from memory.
+--
+--   If the packed data is malformed then `error`.
 peekDecl :: Peek (Decl Text Prim)
 peekDecl !p0 !n0
  = do   (b0, p1, n1) <- peekWord8 p0 n0
@@ -74,6 +78,8 @@ peekDecl !p0 !n0
 
 ---------------------------------------------------------------------------------------------------
 -- | Peek an `Exp` from memory.
+--
+--   If the packed data is malformed then `error`.
 peekExp :: Peek (Exp Text Prim)
 peekExp !p0 !n0
  = do   (b0, p1, n1) <- peekWord8 p0 n0
@@ -269,6 +275,8 @@ peekUpsBump !p0 !n0
 
 ---------------------------------------------------------------------------------------------------
 -- | Peek a `Ref` from memory.
+--
+--   If the packed data is malformed then `error`.
 peekRef :: Peek (Ref Text Prim)
 peekRef !p0 !n0
  = do   (b0, p1, n1) <- peekWord8 p0 n0
