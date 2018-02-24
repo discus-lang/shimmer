@@ -26,6 +26,7 @@ import Foreign.Ptr
 import Data.Text                                (Text)
 import Data.Bits
 import Data.Word
+import Data.Int
 import Numeric
 
 ---------------------------------------------------------------------------------------------------
@@ -412,6 +413,26 @@ peekPrim !p0 !n0
                                         .|. to64 x6 `shiftL` 8
                                         .|. to64 x7
                                 return (PrimLitNat $ fromIntegral w, p3, n3)
+
+                 "int"
+                  -> do (ls, p3, n3) <- peekList peekWord8 p2 n2
+                        case ls of
+                         [x0, x1, x2, x3, x4, x5, x6, x7]
+                          -> do let w   =   to64 x0 `shiftL` 56
+                                        .|. to64 x1 `shiftL` 48
+                                        .|. to64 x2 `shiftL` 40
+                                        .|. to64 x3 `shiftL` 32
+                                        .|. to64 x4 `shiftL` 24
+                                        .|. to64 x5 `shiftL` 16
+                                        .|. to64 x6 `shiftL` 8
+                                        .|. to64 x7
+
+                                F.allocaBytes 8 $ \pp
+                                 -> do  F.poke (F.castPtr pp :: Ptr Word64) w
+                                        i64 <- F.peek (F.castPtr pp :: Ptr Int64)
+                                        return (PrimLitInt (fromIntegral i64), p3, n3)
+
+
                          _ -> error "shimmer.peekPrim: invalid payload"
 
                  s -> error $ "shimmer.peekPrim: unknown tag " ++ show s
@@ -503,33 +524,35 @@ peekText !p0 !n0
                 let n2  =  n0 - 2
 
                 when (not (n2 >= nBytes))
-                 $ error "shimmer.peekText: pointer out of range"
+                 $ error $ "shimmer.peekText.fd: pointer out of range " ++ show (n0, n2, nBytes)
 
                 F.copyBytes buf p2 nBytes
                 bs      <- BS.unsafePackMallocCStringLen (buf, nBytes)
                 return (T.decodeUtf8 bs, F.plusPtr p2 nBytes, n2 - nBytes)
 
          0xfe
+          | n1 >= 2
           -> do nBytes  <- fmap fromIntegral $ peek16 p0 1
                 buf     <- F.mallocBytes nBytes
                 let p2  =  F.plusPtr p0 3
                 let n2  =  n0 - 3
 
                 when (not (n2 >= nBytes))
-                 $ error "shimmer.peekText: pointer out of range"
+                 $ error "shimmer.peekText.fe: pointer out of range"
 
                 F.copyBytes buf p2 nBytes
                 bs      <- BS.unsafePackMallocCStringLen (buf, nBytes)
                 return (T.decodeUtf8 bs, F.plusPtr p2 nBytes, n2 - nBytes)
 
          0xff
+          | n1 >= 4
           -> do nBytes  <- fmap fromIntegral $ peek32 p0 1
                 buf     <- F.mallocBytes nBytes
                 let p2  =  F.plusPtr p0 5
                 let n2  =  n0 - 5
 
                 when (not (n2 >= nBytes))
-                 $ error "shimmer.peekText: pointer out of range"
+                 $ error "shimmer.peekText.ff: pointer out of range"
 
                 F.copyBytes buf p2 nBytes
                 bs      <- BS.unsafePackMallocCStringLen (buf, nBytes)
@@ -538,7 +561,7 @@ peekText !p0 !n0
          -- Short text.
          _
           -> do when ((b0 .&. 0x0f0) /= 0xf0)
-                 $ error $ "shimmer.peekVar: invalid header " ++ show b0
+                 $ error $ "shimmer.peekVar.fN: invalid header " ++ show b0
 
                 let nBytes  = fromIntegral $ b0 .&. 0x0f
                 buf     <- F.mallocBytes nBytes
@@ -547,7 +570,7 @@ peekText !p0 !n0
                 return (T.decodeUtf8 bs, F.plusPtr p1 nBytes, n1 - nBytes)
 
  | otherwise
- = error "shimmer.peekText: pointer out of range"
+ = error "shimmer.peekText.start: pointer out of range"
 {-# NOINLINE peekText #-}
 
 
@@ -619,6 +642,7 @@ peekWord64 p n
 
 
 -- | Peek a `Word64` from memory, in network byte order.
+--  TODO: use byteSwap in Data.Word
 peekWord64' :: Peek Word64
 peekWord64' p n
  = do   b0 <- fmap to64 $ peek8 p 0
@@ -644,14 +668,14 @@ peekWord64' p n
 -- | Peek a `Float32` from memory, in network byte order, with bounds check.
 peekFloat32  :: Peek Float
 peekFloat32 p0 n0
- | n0 >= 8
+ | n0 >= 4
  = F.allocaBytes 4 $ \p'
  -> do  (w32, p1, n1) <- peekWord32' p0 n0
         F.poke (F.castPtr p' :: Ptr Word32) w32
         f32 <- F.peek (F.castPtr p' :: Ptr Float)
         return (f32, p1, n1)
 
- | otherwise    = error "shimmer.peekWord32: pointer out of bounds"
+ | otherwise    = error "shimmer.peekFloat32: pointer out of bounds"
 {-# NOINLINE peekFloat32 #-}
 
 
@@ -665,7 +689,7 @@ peekFloat64 p0 n0
         f64 <- F.peek (F.castPtr p' :: Ptr Double)
         return (f64, p1, n1)
 
- | otherwise    = error "shimmer.peekWord64: pointer out of bounds"
+ | otherwise    = error "shimmer.peekFloat64: pointer out of bounds"
 {-# NOINLINE peekFloat64 #-}
 
 

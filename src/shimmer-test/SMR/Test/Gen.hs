@@ -2,16 +2,23 @@
 module SMR.Test.Gen where
 import qualified SMR.Core.Exp           as S
 import qualified SMR.Prim.Op            as S
-import qualified SMR.Prim.Op.Base       as S
 import qualified SMR.Prim.Name          as S
 
 import           Hedgehog
 import qualified Hedgehog.Gen           as Gen
 import qualified Hedgehog.Range         as Range
 
+import qualified Data.Set               as Set
 import qualified Data.Text              as Text
 import Data.Text                        (Text)
 import Control.Monad
+
+-- Config -----------------------------------------------------------------------------------------
+data Config s p
+        = Config
+        { configContext :: Context s p
+        , configGenSym  :: Gen s
+        , configGenPrm  :: Gen p }
 
 
 -- Context ----------------------------------------------------------------------------------------
@@ -19,9 +26,8 @@ data Context s p
         = Context
         { contextMacros :: [S.Name]
         , contextSets   :: [S.Name]
-        , contextVars   :: [S.Name]
-        , contextGenSym :: Gen s
-        , contextGenPrm :: Gen p }
+        , contextVars   :: [S.Name] }
+        deriving Show
 
 
 genContextTextPrim :: Gen (Context Text S.Prim)
@@ -33,13 +39,25 @@ genContextTextPrim
          $ Context
                 { contextMacros = nsMac
                 , contextSets   = nsSet
-                , contextVars   = []
-                , contextGenSym = genText
-                , contextGenPrm = genPrim }
+                , contextVars   = [] }
+
+
+-- Decl -------------------------------------------------------------------------------------------
+genFileDecls :: Config s p -> Gen [S.Decl s p]
+genFileDecls cfg
+ = Gen.list (Range.linear 1 10) (genDecl cfg)
+
+
+-- Decl -------------------------------------------------------------------------------------------
+genDecl :: Config s p -> Gen (S.Decl s p)
+genDecl ctx
+ = Gen.choice
+ $      [ S.DeclMac <$> genText <*> genExp ctx
+        , S.DeclSet <$> genText <*> genExp ctx ]
 
 
 -- Exp --------------------------------------------------------------------------------------------
-genExp :: Context s p -> Gen (S.Exp s p)
+genExp :: Config s p -> Gen (S.Exp s p)
 genExp ctx
  = Gen.recursive Gen.choice
         [ S.XRef <$> genRef ctx]
@@ -70,14 +88,14 @@ genKey
 
 
 -- Ref --------------------------------------------------------------------------------------------
-genRef :: Context s p -> Gen (S.Ref s p)
+genRef :: Config s p -> Gen (S.Ref s p)
 genRef ctx
  = Gen.choice
- $      [ fmap S.RSym (contextGenSym ctx)
-        , fmap S.RPrm (contextGenPrm ctx)
+ $      [ fmap S.RSym (configGenSym ctx)
+        , fmap S.RPrm (configGenPrm ctx)
         , fmap S.RTxt genText
-        , fmap S.RMac (Gen.choice $ map return $ contextMacros ctx)
-        , fmap S.RSet (Gen.choice $ map return $ contextSets   ctx)
+        , fmap S.RMac (Gen.choice $ map return $ contextMacros $ configContext ctx)
+        , fmap S.RSet (Gen.choice $ map return $ contextSets   $ configContext ctx)
         , fmap S.RNom (fmap fromIntegral $ Gen.resize (Size 100) $ Gen.word16 (Range.linear 1 10))
         ]
 
@@ -106,7 +124,7 @@ genPrim
         , fmap   S.PrimLitFloat64 $ Gen.double $ Range.exponentialFloat 0 100000
 
         , fmap   S.PrimOp         $ Gen.choice $ map return
-                                  $ [tx | S.PrimOp tx <- map S.primEvalName $ S.primEvals ]
+                                  $ Set.toList S.primNames
         ]
 
 

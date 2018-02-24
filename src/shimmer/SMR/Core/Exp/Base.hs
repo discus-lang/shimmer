@@ -9,7 +9,7 @@ import Data.Text                (Text)
 data Decl s p
         = DeclMac Name (Exp s p)
         | DeclSet Name (Exp s p)
-        deriving Show
+        deriving (Eq, Show)
 
 
 -- | Expression,
@@ -33,7 +33,7 @@ data Exp s p
         -- | Substitution train applied to an expression.
         --   The train car at the head of the list is applied first.
         | XSub  !(Train s p) !(Exp s p)
-        deriving Show
+        deriving (Eq, Show)
 
 
 -- | Substitution train.
@@ -44,7 +44,7 @@ type Train s p
 -- | Function parameter.
 data Param
         = PParam !Name !Form
-        deriving Show
+        deriving (Eq, Show)
 
 
 -- | Form of argument required in application.
@@ -54,7 +54,7 @@ data Form
 
         -- | Expression for call-by-name
         | PExp
-        deriving Show
+        deriving (Eq, Show)
 
 
 -- | Expression keys (super primitives)
@@ -65,8 +65,7 @@ data Key
 
         -- | Run a boxed expression.
         | KRun
-
-        deriving Show
+        deriving (Eq, Show)
 
 
 -- | A car on the substitution train,
@@ -80,26 +79,26 @@ data Car s p
 
         -- | Lifting.
         | CUps  !Ups
-        deriving Show
+        deriving (Eq, Show)
 
 
 -- | Explicit substitution map,
 --   parameterised by the types used for symbols and primitives.
 data Snv s p
         = SSnv ![SnvBind s p]
-        deriving Show
+        deriving (Eq, Show)
 
 data SnvBind s p
         = BindVar !Name !Depth !(Exp s p)
         | BindNom !Nom         !(Exp s p)
-        deriving Show
+        deriving (Eq, Show)
 
 
 -- | Lifting indicator,
 --   mapping name and binding depth to number of levels to lift.
 data Ups
         = UUps ![UpsBump]
-        deriving Show
+        deriving (Eq, Show)
 
 
 -- | Indicates how to bump the index on a variable.
@@ -134,7 +133,7 @@ data Ref s p
 
         -- | A nominal variable.
         | RNom  !Nom
-        deriving Show
+        deriving (Eq, Show)
 
 
 -- | Generic names for things.

@@ -137,7 +137,7 @@ sizeOfName tt
  = result
  where  n       = T.lengthWord16 tt
         result
-         | n <= 13           = 1 + n
+         | n <  13           = 1 + n
          | n < 2^(8  :: Int) = 1 + 1 + n
          | n < 2^(16 :: Int) = 1 + 2 + n
          | n < 2^(32 :: Int) = 1 + 4 + n
@@ -160,7 +160,7 @@ sizeOfList fs xs
  = result
  where  n       = length xs
         result
-         | n <= 15           = 1 + sum (map fs xs)
+         | n < 13            = 1 + sum (map fs xs)
          | n < 2^(8  :: Int) = 1 + 1 + sum (map fs xs)
          | n < 2^(16 :: Int) = 1 + 2 + sum (map fs xs)
          | n < 2^(32 :: Int) = 1 + 4 + sum (map fs xs)

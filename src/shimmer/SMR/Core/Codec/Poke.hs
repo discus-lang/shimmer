@@ -305,7 +305,7 @@ pokePrim !pp
 pokeList :: Poke a -> Poke [a]
 pokeList pokeA ls
  = do   let  n     = length ls
-        if n <= 13 then
+        if n < 13 then
          do     pokeWord8 (0xf0 + (fromIntegral n)) >=> go ls
 
         else if n <= 2^(8 :: Int) - 1
@@ -335,7 +335,7 @@ pokeText !tx !p0
  = do   let bs = T.encodeUtf8 tx
 
         BS.unsafeUseAsCStringLen bs $ \(pStr, nBytes)
-         -> if nBytes <= 13 then
+         -> if nBytes < 13 then
              do p1 <- pokeWord8 (0xf0 + (fromIntegral nBytes)) p0
                 F.copyBytes (F.castPtr p1) pStr nBytes
                 return (F.plusPtr p1 nBytes)
