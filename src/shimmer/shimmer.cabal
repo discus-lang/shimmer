@@ -51,6 +51,7 @@ library
         SMR.Core.Codec.Peek
         SMR.Core.Codec.Poke
         SMR.Core.Codec.Size
+        SMR.Core.Codec.Word
 
         SMR.Core.World
 

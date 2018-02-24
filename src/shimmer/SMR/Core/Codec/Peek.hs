@@ -9,8 +9,9 @@ module SMR.Core.Codec.Peek
         , peekExp
         , peekRef)
 where
-import SMR.Core.Exp
 import SMR.Prim.Op.Base
+import SMR.Core.Codec.Word
+import SMR.Core.Exp
 
 import qualified Foreign.Marshal.Utils          as F
 import qualified Foreign.Marshal.Alloc          as F
@@ -432,7 +433,6 @@ peekPrim !p0 !n0
                                         i64 <- F.peek (F.castPtr pp :: Ptr Int64)
                                         return (PrimLitInt (fromIntegral i64), p3, n3)
 
-
                          _ -> error "shimmer.peekPrim: invalid payload"
 
                  s -> error $ "shimmer.peekPrim: unknown tag " ++ show s
@@ -498,7 +498,6 @@ peekVar !p0 !n0
         when ((b0 .&. 0x0f0) /= 0x80)
          $ failHeaderByte "peekVar" b0 n0
 
-
         let nBytes  = fromIntegral $ b0 .&. 0x0f
         buf     <- F.mallocBytes nBytes
         F.copyBytes buf (F.castPtr p1) nBytes
@@ -524,7 +523,7 @@ peekText !p0 !n0
                 let n2  =  n0 - 2
 
                 when (not (n2 >= nBytes))
-                 $ error $ "shimmer.peekText.fd: pointer out of range " ++ show (n0, n2, nBytes)
+                 $ error $ "shimmer.peekText.fd: pointer out of range"
 
                 F.copyBytes buf p2 nBytes
                 bs      <- BS.unsafePackMallocCStringLen (buf, nBytes)
@@ -602,10 +601,7 @@ peekWord16 p n
 -- | Peek a `Word16` from memory, in network byte order, with no bound check.
 peekWord16' :: Peek Word16
 peekWord16' p n
- = do   b0 <- fmap to16 $ peek8 p 0
-        b1 <- fmap to16 $ peek8 p 1
-        let w   =   b0 `shiftL` 8
-                .|. b1
+ = do   w  <- fmap fromBE16 $ peek16 p 0
         return (w, F.plusPtr p 2, n - 2)
 {-# INLINE peekWord16' #-}
 
@@ -621,14 +617,7 @@ peekWord32 p n
 -- | Peek a `Word32` from memory, in network byte order, with no bounds check.
 peekWord32' :: Peek Word32
 peekWord32' p n
- = do   b0 <- fmap to32 $ peek8 p 0
-        b1 <- fmap to32 $ peek8 p 1
-        b2 <- fmap to32 $ peek8 p 2
-        b3 <- fmap to32 $ peek8 p 3
-        let w   =   b0 `shiftL` 24
-                .|. b1 `shiftL` 16
-                .|. b2 `shiftL` 8
-                .|. b3
+ = do   w  <- fmap fromBE32 $ peek32 p 0
         return (w, F.plusPtr p 4, n - 4)
 {-# INLINE peekWord32' #-}
 
@@ -642,25 +631,9 @@ peekWord64 p n
 
 
 -- | Peek a `Word64` from memory, in network byte order.
---  TODO: use byteSwap in Data.Word
 peekWord64' :: Peek Word64
 peekWord64' p n
- = do   b0 <- fmap to64 $ peek8 p 0
-        b1 <- fmap to64 $ peek8 p 1
-        b2 <- fmap to64 $ peek8 p 2
-        b3 <- fmap to64 $ peek8 p 3
-        b4 <- fmap to64 $ peek8 p 4
-        b5 <- fmap to64 $ peek8 p 5
-        b6 <- fmap to64 $ peek8 p 6
-        b7 <- fmap to64 $ peek8 p 7
-        let w   =   b0 `shiftL` 56
-                .|. b1 `shiftL` 48
-                .|. b2 `shiftL` 40
-                .|. b3 `shiftL` 32
-                .|. b4 `shiftL` 24
-                .|. b5 `shiftL` 16
-                .|. b6 `shiftL` 8
-                .|. b7
+ = do   w  <- fmap fromBE64 $ peek64 p 0
         return (w, F.plusPtr p 8, n - 8)
 {-# INLINE peekWord64' #-}
 
@@ -721,6 +694,11 @@ peek16 p o = F.peekByteOff p o
 peek32 :: Ptr a -> Int -> IO Word32
 peek32 p o = F.peekByteOff p o
 {-# INLINE peek32 #-}
+
+
+peek64 :: Ptr a -> Int -> IO Word64
+peek64 p o = F.peekByteOff p o
+{-# INLINE peek64 #-}
 
 
 -- Failure ----------------------------------------------------------------------------------------

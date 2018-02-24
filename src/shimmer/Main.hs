@@ -5,8 +5,8 @@ import qualified SMR.CLI.Repl                   as Repl
 import qualified SMR.CLI.Driver.Load            as Driver
 import qualified SMR.Core.World                 as World
 import qualified SMR.Source.Pretty              as Source
-import qualified SMR.Codec.Size                 as Codec
-import qualified SMR.Codec.Poke                 as Codec
+import qualified SMR.Core.Codec                 as Codec
+import qualified SMR.Core.Codec                 as Codec
 
 import qualified Foreign.Marshal.Alloc          as Foreign
 
@@ -28,24 +28,14 @@ main
          Config.ModeNone
           -> runRepl Nothing
 
-         Config.ModeCheck file
-          -> runCheck file
-
          Config.ModeREPL mFile
           -> runRepl mFile
 
+         Config.ModeLoad file
+          -> runLoad file
+
          Config.ModeConvert file1 file2
           -> runConvert file1 file2
-
-
--------------------------------------------------------------------------------
-runCheck :: FilePath -> IO ()
-runCheck path
- = do   decls   <- Driver.runLoadFileDecls path
-        TL.putStr
-                $ BL.toLazyText
-                $ mconcat
-                $ map Source.buildDecl decls
 
 
 -------------------------------------------------------------------------------
@@ -58,6 +48,16 @@ runRepl mPath
          , Repl.stateDecls  = []
          , Repl.stateFiles  = Maybe.maybeToList mPath
          , Repl.stateWorld  = world }
+
+
+-------------------------------------------------------------------------------
+runLoad :: FilePath -> IO ()
+runLoad path
+ = do   decls   <- Driver.runLoadFileDecls path
+        TL.putStr
+                $ BL.toLazyText
+                $ mconcat
+                $ [Source.buildDecl d <> BL.fromString "\n" | d <- decls]
 
 
 -------------------------------------------------------------------------------

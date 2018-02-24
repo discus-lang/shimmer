@@ -8,11 +8,11 @@ data Mode
         -- No mode specified.
         = ModeNone
 
-        -- Parse and check a .smr source file.
-        | ModeCheck FilePath
-
         -- Start the REPL with the given file.
         | ModeREPL  (Maybe FilePath)
+
+        -- Load a file and print the human readable version to stdout.
+        | ModeLoad FilePath
 
         -- Convert a file from one format to another.
         | ModeConvert FilePath FilePath
@@ -38,14 +38,6 @@ parseArgs [] config
  = return config
 
 parseArgs ss config
- | "-check" : filePath : ssRest <- ss
- = parseArgs ssRest
- $ config { configMode = ModeCheck filePath }
-
- | "-convert" : fileSource : fileDest : ssRest <- ss
- = parseArgs ssRest
- $ config { configMode = ModeConvert fileSource fileDest }
-
  | "-help"  : _ssRest <- ss
  = do   putStr usage
         System.exitSuccess
@@ -54,6 +46,13 @@ parseArgs ss config
  = do   putStr usage
         System.exitSuccess
 
+ | "-load" : filePath : ssRest <- ss
+ = parseArgs ssRest
+ $ config { configMode = ModeLoad filePath }
+
+ | "-convert" : fileSource : fileDest : ssRest <- ss
+ = parseArgs ssRest
+ $ config { configMode = ModeConvert fileSource fileDest }
 
  | filePath : ssRest <- ss
  , c : _       <- filePath
@@ -68,8 +67,11 @@ parseArgs ss config
 usage :: String
 usage
  = unlines
- [ "shimmer                       Start the REPL with no soure file."
- , "shimmer FILE                  Start the REPL with the given file."
- , "shimmer -help                 Display this help page."
- , "shimmer -check FILE           Check that a source file is well formed."
- , "shimmer -convert FILE1 FILE2  Convert file from one format to another." ]
+ [ "Shimmer, the reflective lambda machine."
+ , ""
+ , "  shimmer                       Start the REPL with no source file."
+ , "  shimmer FILE                  Start the REPL with the given source file."
+ , "  shimmer -help                 Display this help page."
+ , "  shimmer -load FILE            Load a file and print it to stdout."
+ , "  shimmer -convert FILE1 FILE2  Convert file from one format to another."
+ , ""]

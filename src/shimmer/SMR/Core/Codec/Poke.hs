@@ -9,8 +9,9 @@ module SMR.Core.Codec.Poke
         , pokeExp
         , pokeRef)
 where
-import SMR.Core.Exp
+import SMR.Core.Codec.Word
 import SMR.Prim.Op.Base
+import SMR.Core.Exp
 
 import qualified Foreign.Marshal.Utils          as F
 import qualified Foreign.Marshal.Alloc          as F
@@ -377,8 +378,7 @@ pokeWord8 w p
 -- | Poke a `Word16` into memory, in network byte order.
 pokeWord16 :: Poke Word16
 pokeWord16 w p
- = do   poke8 p 0 $ from16 $ (w .&. 0xff00) `shiftR` 8
-        poke8 p 1 $ from16 $ (w .&. 0x00ff)
+ = do   poke16 p 0 (toBE16 w)
         return (F.plusPtr p 2)
 {-# INLINE pokeWord16 #-}
 
@@ -386,10 +386,7 @@ pokeWord16 w p
 -- | Poke a `Word32` into memory, in network byte order.
 pokeWord32 :: Poke Word32
 pokeWord32 w p
- = do   poke8 p 0 $ from32 $ (w .&. 0xff000000) `shiftR` 24
-        poke8 p 1 $ from32 $ (w .&. 0x00ff0000) `shiftR` 16
-        poke8 p 2 $ from32 $ (w .&. 0x0000ff00) `shiftR`  8
-        poke8 p 3 $ from32 $ (w .&. 0x000000ff)
+ = do   poke32 p 0 (toBE32 w)
         return (F.plusPtr p 4)
 {-# INLINE pokeWord32 #-}
 
@@ -397,14 +394,7 @@ pokeWord32 w p
 -- | Poke a `Word64` into memory, in network byte order.
 pokeWord64 :: Poke Word64
 pokeWord64 w p
- = do   poke8 p 0 $ from64 $ (w .&. 0xff00000000000000) `shiftR` 56
-        poke8 p 1 $ from64 $ (w .&. 0x00ff000000000000) `shiftR` 48
-        poke8 p 2 $ from64 $ (w .&. 0x0000ff0000000000) `shiftR` 40
-        poke8 p 3 $ from64 $ (w .&. 0x000000ff00000000) `shiftR` 32
-        poke8 p 4 $ from64 $ (w .&. 0x00000000ff000000) `shiftR` 24
-        poke8 p 5 $ from64 $ (w .&. 0x0000000000ff0000) `shiftR` 16
-        poke8 p 6 $ from64 $ (w .&. 0x000000000000ff00) `shiftR`  8
-        poke8 p 7 $ from64 $ (w .&. 0x00000000000000ff)
+ = do   poke64 p 0 (toBE64 w)
         return (F.plusPtr p 8)
 {-# INLINE pokeWord64 #-}
 
@@ -447,4 +437,19 @@ from64 = fromIntegral
 poke8 :: Ptr a -> Int -> Word8 -> IO ()
 poke8 p i w = F.pokeByteOff p i w
 {-# INLINE poke8 #-}
+
+
+poke16 :: Ptr a -> Int -> Word16 -> IO ()
+poke16 p i w = F.pokeByteOff p i w
+{-# INLINE poke16 #-}
+
+
+poke32 :: Ptr a -> Int -> Word32 -> IO ()
+poke32 p i w = F.pokeByteOff p i w
+{-# INLINE poke32 #-}
+
+
+poke64 :: Ptr a -> Int -> Word64 -> IO ()
+poke64 p i w = F.pokeByteOff p i w
+{-# INLINE poke64 #-}
 
