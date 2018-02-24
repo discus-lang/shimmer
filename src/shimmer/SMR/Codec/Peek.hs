@@ -27,7 +27,7 @@ import Foreign.Ptr
 import Data.Text                                (Text)
 import Data.Bits
 import Data.Word
-
+import Numeric
 
 ---------------------------------------------------------------------------------------------------
 type Peek a = Ptr Word8 -> Int -> IO (a, Ptr Word8, Int)
@@ -42,7 +42,7 @@ peekFileDecls !p0 !n0
         (b2, p3, n3) <- peekWord8 p2 n2
         (b3, p4, n4) <- peekWord8 p3 n3
         when ( b0 /= 0x53 || b1 /= 0x4d || b2 /= 0x52 || b3 /= 0x31)
-         $ error "peekFileDecls: bad magic"
+         $ error "shimmer.peekFileDecls: bad magic"
 
         (ds, p5, n5) <- peekList peekDecl p4 n4
         return (ds, p5, n5)
@@ -64,7 +64,7 @@ peekDecl !p0 !n0
                 (x,   p3, n3) <- peekExp  p2 n2
                 return (DeclSet tx x, p3, n3)
 
-         _ -> error "peekDecl: invalid header"
+         _ -> error $ failHeaderByte "peekDecl" b0 n0
 {-# NOINLINE peekDecl #-}
 
 
@@ -120,7 +120,13 @@ peekExp !p0 !n0
                  -> do  (r, p2, n2) <- peekRef p0 n0
                         return (XRef r, p2, n2)
 
-                _       -> error "peekExp: invalid header"
+                -- Short Circuit to Sym.
+                0xf0
+                 -> do  (tx, p2, n2) <- peekText p0 n0
+                        return (XRef $ RSym tx, p2, n2)
+
+                _ -> failHeaderByte "peekExp" b0 n0
+
 {-# NOINLINE peekExp #-}
 
 
@@ -131,12 +137,12 @@ peekAbs p0 n0
  = do   (b0, p1, n1) <- peekWord8' p0 n0
 
         when ((b0 .&. 0x0f0) /= 0x90)
-         $ error "peekAbs: invalid header"
+         $ failHeaderByte "peekAbs" b0 n0
 
         go    (fromIntegral $ b0 .&. 0x00f) [] p1 n1
 
  | otherwise
- = error "peekAbs: invalid header"
+ = error "shimmer.peekAbs: short header"
 
  where  go (0 :: Int) acc p n
          = do   (x, p2, n2) <- peekExp p n
@@ -155,18 +161,16 @@ peekApp p0 n0
  | n0 >= 1
  = do   (b0, p1, n1) <- peekWord8' p0 n0
         when ((b0 .&. 0x0f0) /= 0xa0)
-         $ error "peekApp: invalid header"
+         $ failHeaderByte "peekApp" b0 n0
 
         (x0, p2, n2) <- peekExp    p1 n1
-
         go  x0 (fromIntegral $ b0 .&. 0x00f) [] p2 n2
 
  | otherwise
- = error "peekApp: invalid header"
+ = error "shimmer.peekApp: short header"
 
  where  go x0 (0 :: Int) acc p n
-         = do   (x, p2, n2) <- peekExp p n
-                return (XApp x0 (reverse acc), p2, n2)
+         = do   return (XApp x0 (reverse acc), p, n)
 
         go x0 i acc p n
          = do   (x, p', n') <- peekExp p n
@@ -182,7 +186,7 @@ peekKey !p0 !n0
         p1 `seq` case b0 of
          0xb6   -> return (KBox, p1, n1)
          0xb7   -> return (KRun, p1, n1)
-         _      -> error $ "peekKey: invalid header"
+         _      -> failHeaderByte "peekKey" b0 n0
 {-# INLINE peekKey #-}
 
 
@@ -199,7 +203,7 @@ peekParam !p0 !n0
           -> do (tx, p2, n2) <- peekName p1 n1
                 return (PParam tx PExp, p2, n2)
 
-         _ -> error $ "peekParam: invalid header " ++ show b0 ++ " " ++ show p1
+         _ -> failHeaderByte "peekParam" b0 n0
 {-# INLINE peekParam #-}
 
 
@@ -220,7 +224,7 @@ peekCar !p0 !n0
           -> do (ups, p2, n2) <- peekList peekUpsBump p1 n1
                 return (CUps (UUps ups), p2, n2)
 
-         _ -> error $ "peekCar: invalid header"
+         _ -> failHeaderByte "peekCar" b0 n1
 {-# INLINE peekCar #-}
 
 
@@ -240,7 +244,7 @@ peekSnvBind !p0 !n0
                 (x, p3, n3) <- peekExp  p2 n2
                 return (BindNom n x,   p3, n3)
 
-         _ -> error $ "peekSnvBind: invalid header"
+         _ -> failHeaderByte "peekSnvBind" b0 n1
 {-# INLINE peekSnvBind #-}
 
 
@@ -248,7 +252,10 @@ peekSnvBind !p0 !n0
 peekUpsBump :: Peek UpsBump
 peekUpsBump !p0 !n0
  = do   (b0, p1, n1) <- peekWord8 p0 n0
-        when (b0 /= 0xbf) $ error $ "peekUpsBump: invalid header"
+
+        when (b0 /= 0xbf)
+         $ failHeaderByte "peekUpsBump" b0 n1
+
         (n,  p2, n2) <- peekName  p1 n1
         (d,  p3, n3) <- peekBump  p2 n2
         (i,  p4, n4) <- peekBump  p3 n3
@@ -393,14 +400,14 @@ peekPrim !p0 !n0
                                         .|. to64 x6 `shiftL` 8
                                         .|. to64 x7
                                 return (PrimLitNat $ fromIntegral w, p3, n3)
-                         _ -> error "peekPrim: invalid payload"
+                         _ -> error "shimmer.peekPrim: invalid payload"
 
-                 s -> error $ "peekPrim: unknown tag " ++ show s
+                 s -> error $ "shimmer.peekPrim: unknown tag " ++ show s
 
-         _ -> error $ "peekPrim: invalid header"
+         _ -> failHeaderByte "peekPrim" b0 n1
 
  | otherwise
- = error "peekPrim: invalid header"
+ = error "shimmer.peekPrim: short header"
 {-# INLINE peekPrim #-}
 
 
@@ -409,9 +416,8 @@ peekPrim !p0 !n0
 peekList :: Peek a -> Peek [a]
 peekList peekA p0 n0
  | n0 >= 1
- = do   (b0, _p1, n1) <- peekWord8' p0 n0
+ = do   (b0, p1, n1) <- peekWord8' p0 n0
 
-        -- TODO: handle small sizes.
         case b0 of
          0xfd
           | n1 >= 1
@@ -428,10 +434,15 @@ peekList peekA p0 n0
           -> do nElems <- fmap fromIntegral $ peek32 p0 1
                 go nElems [] (F.plusPtr p0 5) (n1 - 4)
 
-         _ -> error "peekList: invalid header"
+         _ |  (b0 .&. 0x0f0) == 0xf0
+           -> let nElems = fromIntegral (b0 .&. 0x0f)
+              in  go nElems [] p1 n1
+
+           | otherwise
+           -> failHeaderByte "peekList" b0 n0
 
  | otherwise
- = error "peekList: invalid header"
+ = error "shimmer.peekList: short header"
 
  where  go (0 :: Int) acc p n
          = return (reverse acc, p, n)
@@ -452,7 +463,8 @@ peekVar !p0 !n0
  = do   (b0, p1, n1) <- peekWord8' p0 n0
 
         when ((b0 .&. 0x0f0) /= 0x80)
-         $ error "peekVar: invalid header"
+         $ failHeaderByte "peekVar" b0 n0
+
 
         let nBytes  = fromIntegral $ b0 .&. 0x0f
         buf     <- F.mallocBytes nBytes
@@ -460,22 +472,27 @@ peekVar !p0 !n0
         bs      <- BS.unsafePackMallocCStringLen (buf, nBytes)
         return (T.decodeUtf8 bs, F.plusPtr p1 nBytes, n1 - nBytes)
 
+ | otherwise
+ = error "shimmer.peekVar: short header"
+
 
 -- | Peek a text value from memory as UTF8 characters.
 peekText :: Peek Text
 peekText !p0 !n0
  | n0 >= 1
- = do   (b0, _, n1) <- peekWord8' p0 n0
+ = do   (b0, p1, n1) <- peekWord8' p0 n0
         case b0 of
 
-         -- TODO: handle small sizes.
          0xfd
           | n1 >= 1
           -> do nBytes  <- fmap fromIntegral $ peek8 p0 1
                 buf     <- F.mallocBytes nBytes
                 let p2  =  F.plusPtr p0 2
                 let n2  =  n0 - 2
-                when (not (n2 >= nBytes)) $ error "peekText: pointer out of range"
+
+                when (not (n2 >= nBytes))
+                 $ error "shimmer.peekText: pointer out of range"
+
                 F.copyBytes buf p2 nBytes
                 bs      <- BS.unsafePackMallocCStringLen (buf, nBytes)
                 return (T.decodeUtf8 bs, F.plusPtr p2 nBytes, n2 - nBytes)
@@ -485,7 +502,10 @@ peekText !p0 !n0
                 buf     <- F.mallocBytes nBytes
                 let p2  =  F.plusPtr p0 3
                 let n2  =  n0 - 3
-                when (not (n2 >= nBytes)) $ error "peekText: pointer out of range"
+
+                when (not (n2 >= nBytes))
+                 $ error "shimmer.peekText: pointer out of range"
+
                 F.copyBytes buf p2 nBytes
                 bs      <- BS.unsafePackMallocCStringLen (buf, nBytes)
                 return (T.decodeUtf8 bs, F.plusPtr p2 nBytes, n2 - nBytes)
@@ -495,15 +515,27 @@ peekText !p0 !n0
                 buf     <- F.mallocBytes nBytes
                 let p2  =  F.plusPtr p0 5
                 let n2  =  n0 - 5
-                when (not (n2 >= nBytes)) $ error "peekText: pointer out of range"
+
+                when (not (n2 >= nBytes))
+                 $ error "shimmer.peekText: pointer out of range"
+
                 F.copyBytes buf p2 nBytes
                 bs      <- BS.unsafePackMallocCStringLen (buf, nBytes)
                 return (T.decodeUtf8 bs, F.plusPtr p2 nBytes, n2 - nBytes)
 
-         _ -> error $ "peekText: invalid header"
+         -- Short text.
+         _
+          -> do when ((b0 .&. 0x0f0) /= 0xf0)
+                 $ error $ "shimmer.peekVar: invalid header " ++ show b0
+
+                let nBytes  = fromIntegral $ b0 .&. 0x0f
+                buf     <- F.mallocBytes nBytes
+                F.copyBytes buf (F.castPtr p1) nBytes
+                bs      <- BS.unsafePackMallocCStringLen (buf, nBytes)
+                return (T.decodeUtf8 bs, F.plusPtr p1 nBytes, n1 - nBytes)
 
  | otherwise
- = error "peekText: pointer out of range"
+ = error "shimmer.peekText: pointer out of range"
 {-# NOINLINE peekText #-}
 
 
@@ -512,7 +544,7 @@ peekText !p0 !n0
 peekWord8  :: Peek Word8
 peekWord8 p n
  | n >= 1       = peekWord8' p n
- | otherwise    = error "peekWord8: pointer out of bounds"
+ | otherwise    = error "shimmer.peekWord8: pointer out of bounds"
 {-# NOINLINE peekWord8 #-}
 
 
@@ -528,7 +560,7 @@ peekWord8' p n
 peekWord16  :: Peek Word16
 peekWord16 p n
  | n >= 2       = peekWord16' p n
- | otherwise    = error "peekWord16: pointer out of bounds"
+ | otherwise    = error "shimmer.peekWord16: pointer out of bounds"
 {-# NOINLINE peekWord16 #-}
 
 
@@ -547,7 +579,7 @@ peekWord16' p n
 peekWord32  :: Peek Word32
 peekWord32 p n
  | n >= 4       = peekWord32' p n
- | otherwise    = error "peekWord32: pointer out of bounds"
+ | otherwise    = error "shimmer.peekWord32: pointer out of bounds"
 {-# NOINLINE peekWord32 #-}
 
 
@@ -570,7 +602,7 @@ peekWord32' p n
 peekWord64  :: Peek Word64
 peekWord64 p n
  | n >= 8       = peekWord64' p n
- | otherwise    = error "peekWord64: pointer out of bounds"
+ | otherwise    = error "shimmer.peekWord64: pointer out of bounds"
 {-# NOINLINE peekWord64 #-}
 
 
@@ -607,7 +639,7 @@ peekFloat32 p0 n0
         f32 <- F.peek (F.castPtr p' :: Ptr Float)
         return (f32, p1, n1)
 
- | otherwise    = error "peekWord32: pointer out of bounds"
+ | otherwise    = error "shimmer.peekWord32: pointer out of bounds"
 {-# NOINLINE peekFloat32 #-}
 
 
@@ -621,7 +653,7 @@ peekFloat64 p0 n0
         f64 <- F.peek (F.castPtr p' :: Ptr Double)
         return (f64, p1, n1)
 
- | otherwise    = error "peekWord64: pointer out of bounds"
+ | otherwise    = error "shimmer.peekWord64: pointer out of bounds"
 {-# NOINLINE peekFloat64 #-}
 
 
@@ -654,3 +686,11 @@ peek32 :: Ptr a -> Int -> IO Word32
 peek32 p o = F.peekByteOff p o
 {-# INLINE peek32 #-}
 
+
+-- Failure ----------------------------------------------------------------------------------------
+failHeaderByte :: String -> Word8 -> Int -> a
+failHeaderByte fn b n
+ = error
+ $ "shimmer." ++ fn
+        ++ " invalid header byte "
+        ++ showHex b "" ++ "@-" ++ show n

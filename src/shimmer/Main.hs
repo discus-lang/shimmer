@@ -13,7 +13,6 @@ import qualified Foreign.Marshal.Alloc          as Foreign
 import qualified System.Environment             as System
 import qualified System.FilePath                as System
 import qualified System.IO                      as System
-import qualified Data.Text.Lazy                 as TL
 import qualified Data.Text.Lazy.IO              as TL
 import qualified Data.Text.Lazy.Builder         as BL
 import qualified Data.Maybe                     as Maybe

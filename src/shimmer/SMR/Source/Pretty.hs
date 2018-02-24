@@ -2,7 +2,6 @@
 module SMR.Source.Pretty where
 import SMR.Core.Exp.Base
 import SMR.Prim.Name
-import SMR.Prim.Op.Base
 import Data.Monoid
 import Data.Text                                (Text)
 import Data.Text.Lazy.Builder                   (Builder)

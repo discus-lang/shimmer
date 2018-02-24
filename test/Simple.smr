@@ -7,15 +7,15 @@
 
 
 -- Duplicate a value.
-@dup x  = x x;
+@dup = \x. x x;
 +test   = %test-exp %simple-dup
  (@dup %x) (%x %x);
 
 
 -- Apply a higher order function twice.
-@twice f x = f (f x);
--- +test   = %test-exp %simple-twice
--- (@twice (#nat-add #nat'1) #nat'5) #nat'7;
+ @twice f x = f (f x);
+ +test   = %test-exp %simple-twice
+  (@twice (#nat-add #nat'1) #nat'5) #nat'7;
 
 
 -- Compute the factorial of a number.
@@ -31,13 +31,13 @@
 
 @fac-acc-loop acc x
  = #if  (#nat-eq x #nat'0)
-        acc
-        (@fac-acc-loop (#nat-mul x acc) (#nat-sub x #nat'1));
+         acc
+         (@fac-acc-loop (#nat-mul x acc) (#nat-sub x #nat'1));
 
 @iterate f x n
  = #if  (#nat-eq n #nat'0)
-        x
-        (@iterate f (f x) (#nat-sub n #nat'1));
+         x
+         (@iterate f (f x) (#nat-sub n #nat'1));
 
 @prop-id
  = %all (\a. %impl a a);

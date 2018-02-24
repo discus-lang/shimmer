@@ -1,23 +1,23 @@
 
 module SMR.Codec.Size
-        ( sizeOfSeq
-        , sizeOfFile, sizeOfDecl
+        ( sizeOfFile, sizeOfDecl
         , sizeOfRef
         , sizeOfExp,  sizeOfParam
         , sizeOfCar,  sizeOfSnvBind, sizeOfUpsBump
-        , sizeOfName, sizeOfBump,    sizeOfNom)
+        , sizeOfName, sizeOfBump,    sizeOfNom
+        , sizeOfList)
 where
 import SMR.Core.Exp
 import SMR.Prim.Op.Base
-import qualified Data.Text.Foreign      as T
 import qualified Data.Text              as T
+import qualified Data.Text.Foreign      as T
 
 
 ---------------------------------------------------------------------------------------------------
 -- | Compute the size of a serialized shimmer file containing the given decls.
 sizeOfFile :: [Decl Text Prim] -> Int
 sizeOfFile decls
- = 4 + sizeOfSeq sizeOfDecl decls
+ = 4 + sizeOfList sizeOfDecl decls
 
 
 -- | Compute the serialized size of a given declaration.
@@ -44,7 +44,7 @@ sizeOfExp xx
          -> 1 + sizeOfExp x1 + (sum $ map sizeOfExp xs)
 
          | otherwise
-         -> 1 + sizeOfExp x1 + sizeOfSeq sizeOfExp xs
+         -> 1 + sizeOfExp x1 + sizeOfList sizeOfExp xs
 
         XVar n b
          |  T.lengthWord16 n <= 15, b == 0
@@ -58,10 +58,10 @@ sizeOfExp xx
          -> 1 + (sum $ map sizeOfParam ps) + sizeOfExp x
 
          | otherwise
-         -> 1 + sizeOfSeq sizeOfParam ps + sizeOfExp x
+         -> 1 + sizeOfList sizeOfParam ps + sizeOfExp x
 
         XSub cs x
-         -> 1 + sizeOfSeq sizeOfCar cs   + sizeOfExp x
+         -> 1 + sizeOfList sizeOfCar cs   + sizeOfExp x
 
 
 -- | Compute the serialized size of a parameter.
@@ -74,9 +74,9 @@ sizeOfParam (PParam n _form)
 sizeOfCar :: Car Text Prim -> Int
 sizeOfCar cc
  = case cc of
-        CSim (SSnv snv) -> 1 + sizeOfSeq sizeOfSnvBind snv
-        CRec (SSnv snv) -> 1 + sizeOfSeq sizeOfSnvBind snv
-        CUps (UUps ups) -> 1 + sizeOfSeq sizeOfUpsBump ups
+        CSim (SSnv snv) -> 1 + sizeOfList sizeOfSnvBind snv
+        CRec (SSnv snv) -> 1 + sizeOfList sizeOfSnvBind snv
+        CUps (UUps ups) -> 1 + sizeOfList sizeOfUpsBump ups
 
 
 -- | Compute the serialized size of a substitution bind.
@@ -110,14 +110,26 @@ sizeOfRef rr
 sizeOfPrim :: Prim -> Int
 sizeOfPrim pp
  = case pp of
-        PrimTagUnit     -> 1
-        PrimLitBool _   -> 1
-        PrimOp tx       -> 1 + sizeOfName tx
+        PrimTagUnit      -> 1
+        PrimTagList      -> 1
+        PrimLitBool   _  -> 1
 
-        PrimLitNat _    -> 1 + sizeOfName (T.pack "nat")
-                        +  sizeOfSeq (const 1) (replicate (8 :: Int) (0 :: Int))
+        PrimLitWord8  _  -> 2
+        PrimLitWord16 _  -> 3
+        PrimLitWord32 _  -> 5
+        PrimLitWord64 _  -> 9
 
-        _               -> error "TODO: handle lists"
+        PrimLitInt8   _  -> 2
+        PrimLitInt16  _  -> 3
+        PrimLitInt32  _  -> 5
+        PrimLitInt64  _  -> 9
+
+        PrimLitFloat32 _ -> 5
+        PrimLitFloat64 _ -> 9
+        PrimOp tx        -> 1 + sizeOfName tx
+
+        PrimLitNat _     -> 1 + sizeOfName (T.pack "nat") + 1 + 8
+        PrimLitInt _     -> 1 + sizeOfName (T.pack "int") + 1 + 8
 
 
 ---------------------------------------------------------------------------------------------------
@@ -145,14 +157,14 @@ sizeOfNom _  = 4
 
 
 -- | Compute the serialized size of a sequence of things.
-sizeOfSeq :: (a -> Int) -> [a] -> Int
-sizeOfSeq fs xs
+sizeOfList :: (a -> Int) -> [a] -> Int
+sizeOfList fs xs
  = result
  where  n       = length xs
         result
-         | n <= 1            = 1 + sum (map fs xs)
+         | n <= 15           = 1 + sum (map fs xs)
          | n < 2^(8  :: Int) = 1 + 1 + sum (map fs xs)
          | n < 2^(16 :: Int) = 1 + 2 + sum (map fs xs)
          | n < 2^(32 :: Int) = 1 + 4 + sum (map fs xs)
-         | otherwise         = error "shimmer.sizeOfSeq: sequence too long to serialize."
+         | otherwise         = error "shimmer.sizeOfList: sequence too long to serialize."
 

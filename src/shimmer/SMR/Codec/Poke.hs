@@ -106,19 +106,19 @@ pokeAbs (ps, x)
          >=> pokeExp x
 
  where  go [] !p0 = return p0
-        go (p : ps) !p0
+        go (p : ps1) !p0
          = do   p1 <- pokeParam p p0
-                go ps p1
+                go ps1 p1
         {-# NOINLINE go #-}
 {-# INLINE pokeAbs #-}
 
 
 -- | Poke an `Exp` application into memory with packed length.
 pokeApp :: Poke (Exp Text Prim, [Exp Text Prim])
-pokeApp (x1, xs)
- =      pokeWord8 (0xa0 + fromIntegral (length xs))
+pokeApp (x1, xs1)
+ =      pokeWord8 (0xa0 + fromIntegral (length xs1))
          >=> pokeExp x1
-         >=> go xs
+         >=> go xs1
 
  where  go [] !p0 = return p0
         go (x : xs) !p0
@@ -265,10 +265,32 @@ pokePrim !pp
         PrimOp tx               -> pokeWord8 0xee >=> pokeText tx
 
         -- TODO: handle arbitrary length nats instead of squashing into Word64.
-        PrimLitNat n            -> pokeWord8 0xe7 >=> pokeWord64 (fromIntegral n)
+        PrimLitNat n
+         -> pokeWord8 0xef
+                >=> pokeName (T.pack "nat")
+                >=> pokeList pokeWord8
+                        [ fromIntegral $ (n .&. 0xff00000000000000) `shiftR` 56
+                        , fromIntegral $ (n .&. 0x00ff000000000000) `shiftR` 48
+                        , fromIntegral $ (n .&. 0x0000ff0000000000) `shiftR` 40
+                        , fromIntegral $ (n .&. 0x000000ff00000000) `shiftR` 32
+                        , fromIntegral $ (n .&. 0x00000000ff000000) `shiftR` 24
+                        , fromIntegral $ (n .&. 0x0000000000ff0000) `shiftR` 16
+                        , fromIntegral $ (n .&. 0x000000000000ff00) `shiftR` 8
+                        , fromIntegral $ (n .&. 0x00000000000000ff)]
 
         -- TOOD: handle arbitrary length ints instead of squashing into Word64.
-        PrimLitInt n            -> pokeWord8 0xeb >=> pokeWord64 (fromIntegral n)
+        PrimLitInt n
+         -> pokeWord8 0xef
+                >=> pokeName (T.pack "int")
+                >=> pokeList pokeWord8
+                        [ fromIntegral $ (n .&. 0xff00000000000000) `shiftR` 56
+                        , fromIntegral $ (n .&. 0x00ff000000000000) `shiftR` 48
+                        , fromIntegral $ (n .&. 0x0000ff0000000000) `shiftR` 40
+                        , fromIntegral $ (n .&. 0x000000ff00000000) `shiftR` 32
+                        , fromIntegral $ (n .&. 0x00000000ff000000) `shiftR` 24
+                        , fromIntegral $ (n .&. 0x0000000000ff0000) `shiftR` 16
+                        , fromIntegral $ (n .&. 0x000000000000ff00) `shiftR` 8
+                        , fromIntegral $ (n .&. 0x00000000000000ff)]
 
 
 {-# INLINE pokePrim #-}
