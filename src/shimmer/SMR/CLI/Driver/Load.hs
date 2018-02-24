@@ -6,7 +6,7 @@ import qualified SMR.Prim.Op                    as Prim
 import qualified SMR.Prim.Name                  as Prim
 import qualified SMR.Source.Parser              as Source
 import qualified SMR.Source.Lexer               as Source
-import qualified SMR.Codec.Peek                 as Codec
+import qualified SMR.Core.Codec.Peek            as Codec
 import SMR.Core.Exp                             (Decl)
 import SMR.Prim.Op.Base                         (Prim)
 

@@ -2,10 +2,12 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE FlexibleInstances #-}
-module SMR.Codec.Peek
-        ( Peekable (..)
-        , type Peek
-        , peekFileDecls)
+module SMR.Core.Codec.Peek
+        ( type Peek
+        , peekFileDecls
+        , peekDecl
+        , peekExp
+        , peekRef)
 where
 import SMR.Core.Exp
 import SMR.Prim.Op.Base
@@ -33,18 +35,6 @@ import Numeric
 --   returns new pointer and remaining bytes.
 --
 type Peek a = Ptr Word8 -> Int -> IO (a, Ptr Word8, Int)
-
-class Peekable a where
- peek :: Peek a
-
-instance Peekable (Decl Text Prim) where
- peek = peekDecl
-
-instance Peekable (Exp Text Prim) where
- peek = peekExp
-
-instance Peekable (Ref Text Prim) where
- peek = peekRef
 
 
 ---------------------------------------------------------------------------------------------------

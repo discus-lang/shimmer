@@ -2,10 +2,12 @@
 {-# LANGUAGE DoAndIfThenElse #-}
 {-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE FlexibleInstances #-}
-module SMR.Codec.Poke
-        ( Pokeable (..)
-        , type Poke
-        , pokeFileDecls)
+module SMR.Core.Codec.Poke
+        ( type Poke
+        , pokeFileDecls
+        , pokeDecl
+        , pokeExp
+        , pokeRef)
 where
 import SMR.Core.Exp
 import SMR.Prim.Op.Base
@@ -33,18 +35,6 @@ import Data.Word
 --   and returns an updated pointer.
 --
 type Poke a = a -> Ptr Word8 -> IO (Ptr Word8)
-
-class Pokeable a where
- poke :: Poke a
-
-instance Pokeable (Decl Text Prim) where
- poke = pokeDecl
-
-instance Pokeable (Exp Text Prim) where
- poke = pokeExp
-
-instance Pokeable (Ref Text Prim) where
- poke = pokeRef
 
 
 ---------------------------------------------------------------------------------------------------

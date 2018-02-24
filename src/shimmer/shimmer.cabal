@@ -24,10 +24,8 @@ library
         haskeline       >= 0.7   && < 0.8
 
  exposed-modules:
-        SMR.Codec.Peek
-        SMR.Codec.Poke
-        SMR.Codec.Size
 
+        SMR.Core.Codec
         SMR.Core.Exp
         SMR.Core.Step
 
@@ -49,6 +47,10 @@ library
         SMR.CLI.Config
         SMR.CLI.Help
         SMR.CLI.Repl
+
+        SMR.Core.Codec.Peek
+        SMR.Core.Codec.Poke
+        SMR.Core.Codec.Size
 
         SMR.Core.World
 

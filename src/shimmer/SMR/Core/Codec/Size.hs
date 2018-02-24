@@ -1,29 +1,18 @@
 {-# LANGUAGE FlexibleInstances #-}
-module SMR.Codec.Size
-        ( Sized (..)
-        , sizeOfFileDecls)
+module SMR.Core.Codec.Size
+        ( sizeOfFileDecls
+        , sizeOfDecl
+        , sizeOfExp
+        , sizeOfRef)
 where
 import SMR.Core.Exp
 import SMR.Prim.Op.Base
 import qualified Data.Text              as T
 import qualified Data.Text.Foreign      as T
 
----------------------------------------------------------------------------------------------------
-class Sized a where
- sizeOf :: a -> Int
-
-instance Sized (Decl Text Prim) where
- sizeOf = sizeOfDecl
-
-instance Sized (Exp Text Prim) where
- sizeOf = sizeOfExp
-
-instance Sized (Ref Text Prim) where
- sizeOf = sizeOfRef
-
 
 ---------------------------------------------------------------------------------------------------
--- | Compute the size of a serialized shimmer file containing the given decls.
+-- | Compute the serialized size of a shimmer file containing the given decls.
 sizeOfFileDecls :: [Decl Text Prim] -> Int
 sizeOfFileDecls decls
  = 4 + sizeOfList sizeOfDecl decls
