@@ -79,6 +79,9 @@ buildExp ctx xx
                  CtxArg -> parens ppExp
                  _      -> ppExp
 
+        XApp x1 []
+         -> buildExp CtxFun x1
+
         XApp x1 xs2
          -> let ppExp   =  buildExp CtxFun x1 <> " " <> go xs2
                 go []               = ""
