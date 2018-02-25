@@ -23,8 +23,14 @@ instance Build Text where
 instance Build Prim where
  build pp = buildPrim pp
 
+instance (Build s, Build p) => Build (Decl s p) where
+ build xx = buildDecl xx
+
 instance (Build s, Build p) => Build (Exp s p) where
  build xx = buildExp CtxTop xx
+
+instance (Build s, Build p) => Build (Ref s p) where
+ build xx = buildRef xx
 
 
 -- | Context we're currently in when pretty printing.
