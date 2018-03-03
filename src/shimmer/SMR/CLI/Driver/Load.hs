@@ -6,9 +6,10 @@ import qualified SMR.Prim.Op                    as Prim
 import qualified SMR.Prim.Name                  as Prim
 import qualified SMR.Source.Parser              as Source
 import qualified SMR.Source.Lexer               as Source
-import qualified SMR.Core.Codec.Peek            as Codec
+import qualified SMR.Core.Codec                 as Codec
 import SMR.Core.Exp                             (Decl)
 import SMR.Prim.Op.Base                         (Prim)
+import qualified Data.ByteString                as BS
 
 import qualified Foreign.Marshal.Alloc          as Foreign
 
@@ -38,16 +39,14 @@ runLoadFileDecls path
          Right decls    -> return decls
 
 
- -- Shimmer binary store file.
- | System.takeExtension path == ".sms"
- = do
-        h     <- System.openBinaryFile path System.ReadMode
-        nSize <- fmap fromIntegral $ System.hFileSize h
-        Foreign.allocaBytes nSize $ \pBuf
-         -> do  nRead <- System.hGetBuf h pBuf nSize
-                when (nRead /= nSize) $ error "runConvert: short read"
-                (decls, _p, _n) <- Codec.peekFileDecls pBuf nSize
-                return decls
-
+ -- Somee other file.
  | otherwise
- = error "runLoadFileDecls: cannot load this file"
+ = do
+        bs      <- BS.readFile path
+
+        let magicSMR    = BS.pack [0x53, 0x4d, 0x52, 0x31]
+        when (not $ BS.isPrefixOf magicSMR (BS.take 4 bs))
+         $ error "runLoadFileDecls: cannot load this file"
+
+        return $ Codec.unpackFileDecls bs
+

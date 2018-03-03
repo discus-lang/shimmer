@@ -1,4 +1,3 @@
-
 -- | Utilities for working with binary encoded Shimmer trees.
 --
 --   The grammar for the binary format is as follows:
@@ -121,6 +120,7 @@ import qualified Foreign.Ptr            as F
 import qualified System.IO.Unsafe       as System
 import qualified Data.ByteString        as BS
 import qualified Data.ByteString.Unsafe as BS
+
 
 -- Pack -------------------------------------------------------------------------------------------
 -- | Pack a list of `Decl` into a `ByteString`, including the file header.
