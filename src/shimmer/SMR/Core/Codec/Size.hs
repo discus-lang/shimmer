@@ -8,7 +8,9 @@ where
 import SMR.Core.Exp
 import SMR.Prim.Op.Base
 import qualified Data.Text              as T
+import qualified Data.Text.Encoding     as T
 import qualified Data.Text.Foreign      as T
+import qualified Data.ByteString        as BS
 
 
 ---------------------------------------------------------------------------------------------------
@@ -135,7 +137,11 @@ sizeOfPrim pp
 sizeOfName :: Text -> Int
 sizeOfName tt
  = result
- where  n       = T.lengthWord16 tt
+ where  -- There doesn't seem to be to get the encoded length
+        -- of a string from the text library other than actually
+        -- encoding it.
+        n = BS.length $ T.encodeUtf8 tt
+
         result
          | n <  13           = 1 + n
          | n < 2^(8  :: Int) = 1 + 1 + n
@@ -158,7 +164,7 @@ sizeOfNom _  = 4
 sizeOfList :: (a -> Int) -> [a] -> Int
 sizeOfList fs xs
  = result
- where  n       = length xs
+ where  n = length xs
         result
          | n < 13            = 1 + sum (map fs xs)
          | n < 2^(8  :: Int) = 1 + 1 + sum (map fs xs)
