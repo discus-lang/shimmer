@@ -1,5 +1,5 @@
 name:           shimmer
-version:        0.1.3.1
+version:        0.1.3.2
 license:        MIT
 license-file:   LICENSE
 author:         Ben Lippmeier <benl@ouroborus.net>
@@ -12,7 +12,7 @@ synopsis:       The Reflective Lambda Machine
 
 executable shimmer
  build-depends:
-        base            >= 4.10  && < 4.11,
+        base            >= 4.10  && < 4.12,
         text            >= 1.2   && < 1.3,
         containers      >= 0.5   && < 0.6,
         bytestring      >= 0.10  && < 0.11,
@@ -35,9 +35,44 @@ executable shimmer
         SMR.CLI.Help
         SMR.CLI.Repl
 
+        SMR.Core.Codec
+        SMR.Core.Codec.Peek
+        SMR.Core.Codec.Poke
+        SMR.Core.Codec.Size
+        SMR.Core.Codec.Word
+
+        SMR.Core.Exp
+        SMR.Core.Exp.Base
+        SMR.Core.Exp.Compounds
+        SMR.Core.Exp.Push
+        SMR.Core.Exp.Train
+
+        SMR.Core.Step
+        SMR.Core.World
+        SMR.Data.Bag
+        SMR.Data.Located
+        SMR.Prim.Name
+
+        SMR.Prim.Op
+        SMR.Prim.Op.Base
+        SMR.Prim.Op.Bool
+        SMR.Prim.Op.List
+        SMR.Prim.Op.Match
+        SMR.Prim.Op.Nat
+        SMR.Prim.Op.Nom
+        SMR.Prim.Op.Sym
+
+        SMR.Source.Expected
+        SMR.Source.Lexer
+        SMR.Source.Parsec
+        SMR.Source.Parser
+        SMR.Source.Pretty
+        SMR.Source.Token
+
+
 library
  build-depends:
-        base            >= 4.10  && < 4.11,
+        base            >= 4.10  && < 4.12,
         text            >= 1.2   && < 1.3,
         containers      >= 0.5   && < 0.6,
         bytestring      >= 0.10  && < 0.11,
