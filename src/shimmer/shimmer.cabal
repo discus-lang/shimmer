@@ -1,5 +1,5 @@
 name:           shimmer
-version:        0.1.3.2
+version:        0.1.3.3
 license:        MIT
 license-file:   LICENSE
 author:         Ben Lippmeier <benl@ouroborus.net>
@@ -9,6 +9,11 @@ cabal-version:  >=1.6
 category:       Compilers/Interpreters
 description:    The Reflective Lambda Machine
 synopsis:       The Reflective Lambda Machine
+homepage:       https://github.com/discus-lang/shimmer
+
+source-repository head
+  type:         git
+  location:     https://github.com/discus-lang/shimmer
 
 executable shimmer
  build-depends:
