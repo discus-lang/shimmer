@@ -1,145 +1,88 @@
-{-# LANGUAGE BangPatterns #-}
 -- | The Shimmer Abstract Syntax Tree (AST)
 module SMR.Core.Exp.Base where
-import Data.Text                (Text)
+import Data.Text        (Text)
+import Data.Int
+import Data.Word
 
 
 -- | Top-level declaration,
 --   parameterised by the types of symbols and primitives.
-data Decl s p
-        = DeclMac Name (Exp s p)
-        | DeclSet Name (Exp s p)
+data Decl
+        = DeclMac Name Exp              -- ^ Macro declaration.
+        | DeclSet Name Exp              -- ^ Element of a declaration set.
         deriving (Eq, Show)
 
 
--- | Expression,
---   parameterised by the types of symbols and primitives
-data Exp s p
-        -- | Reference to an external thing.
-        = XRef  !(Ref s p)
-
-        -- | Keyed expressions.
-        | XKey  !Key !(Exp s p)
-
-        -- | Application of a function expression to an argument.
-        | XApp  !(Exp s p) ![Exp s p]
-
-        -- | Variable name with a depth counter.
-        | XVar  !Name !Depth
-
-        -- | Abstraction with a list of parameters and a body expression.
-        | XAbs  ![Param] !(Exp s p)
-
-        -- | Substitution train applied to an expression.
-        --   The train car at the head of the list is applied first.
-        | XSub  !(Train s p) !(Exp s p)
-        deriving (Eq, Show)
-
-
--- | Substitution train.
-type Train s p
-        = [Car s p]
-
-
--- | Function parameter.
-data Param
-        = PParam !Name !Form
-        deriving (Eq, Show)
-
-
--- | Form of argument required in application.
-data Form
-        -- | Value for call-by-value.
-        = PVal
-
-        -- | Expression for call-by-name
-        | PExp
+-- | Expression parameterized by the type for primitives.
+data Exp
+        = XRef  Ref                     -- ^ External reference.
+        | XVar  Name    Depth           -- ^ Variable name with bump.
+        | XAbs  [Name]  Exp             -- ^ Abstraction with parameter names and body.
+        | XLet  [Name]  [Exp] Exp       -- ^ Non-recursive bindings.
+        | XRec  [Name]  [Exp] Exp       -- ^ Recursive bindings.
+        | XKey  Key     [Exp]           -- ^ Keyword invocation.
         deriving (Eq, Show)
 
 
 -- | Expression keys (super primitives)
 data Key
-        -- | Delay evaluation of an expression used as the argument
-        --   of a call-by-value function application.
-        = KBox
-
-        -- | Run a boxed expression.
-        | KRun
+        = KApv                          -- ^ Application to vector of arguments.
+        | KAps                          -- ^ Application to term producing a vector.
+        | KBox                          -- ^ Box an expression, delaying evaluation.
+        | KRun                          -- ^ Run an expression, forcing evaluation.
+        | KPrm Prim                     -- ^ Primitive application.
         deriving (Eq, Show)
-
-
--- | A car on the substitution train,
---   parameterised by the types used for symbols and primitives.
-data Car s p
-        -- | Simultaneous subsitution.
-        = CSim  !(Snv s p)
-
-        -- | Recursive substitution.
-        | CRec  !(Snv s p)
-
-        -- | Lifting.
-        | CUps  !Ups
-        deriving (Eq, Show)
-
-
--- | Explicit substitution map,
---   parameterised by the types used for symbols and primitives.
-data Snv s p
-        = SSnv ![SnvBind s p]
-        deriving (Eq, Show)
-
-data SnvBind s p
-        = BindVar !Name !Depth !(Exp s p)
-        | BindNom !Nom         !(Exp s p)
-        deriving (Eq, Show)
-
-
--- | Lifting indicator,
---   mapping name and binding depth to number of levels to lift.
-data Ups
-        = UUps ![UpsBump]
-        deriving (Eq, Show)
-
-
--- | Indicates how to bump the index on a variable.
-type UpsBump
-        = ((Name, Depth), Bump)
-
-
--- | Binding depth indicator.
-type Depth = Integer
-
-
--- | Bump index indicator.
-type Bump  = Integer
 
 
 -- | A reference to some external thing.
-data Ref s p
-        -- | An uninterpreted symbol.
-        = RSym  !s
-
-        -- | A primitive value.
-        | RPrm  !p
-
-        -- | A text string.
-        | RTxt  !Text
-
-        -- | A macro name.
-        | RMac  !Name
-
-        -- | A set name.
-        | RSet  !Name
-
-        -- | A nominal variable.
-        | RNom  !Nom
+data Ref
+        = RSym  Text                    -- ^ Uninterpreted symbol.
+        | RTxt  Text                    -- ^ Text string.
+        | RMac  Name                    -- ^ Macro name.
+        | RSet  Name                    -- ^ Set name.
+        | RNom  Nom                     -- ^ Nominal constant.
+        | RVal  Val                     -- ^ Value
         deriving (Eq, Show)
 
 
 -- | Generic names for things.
-type Name = Text
-
+type Name  = Text
 
 -- | Index of a nominal constant.
-type Nom = Integer
+type Nom   = Integer
+
+-- | Binding depth.
+type Depth = Integer
+
+
+-- | Primitive operators.
+data Prim
+        = PrimList
+        | PrimOp        Text
+        deriving (Eq, Ord, Show)
+
+
+-- | Primitive values.
+data Val
+        = VUnit
+        | VBool         Bool
+
+        | VNat          Integer
+        | VInt          Integer
+
+        | VWord8        Word8
+        | VWord16       Word16
+        | VWord32       Word32
+        | VWord64       Word64
+
+        | VInt8         Int8
+        | VInt16        Int16
+        | VInt32        Int32
+        | VInt64        Int64
+
+        | VFloat32      Float
+        | VFloat64      Double
+
+        | VList         [Val]
+        deriving (Eq, Ord, Show)
 

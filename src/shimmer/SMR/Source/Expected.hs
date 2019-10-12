@@ -8,6 +8,7 @@ import Data.Text                        (Text)
 import qualified SMR.Data.Bag           as Bag
 import qualified Data.Text              as Text
 
+
 -------------------------------------------------------------------------------
 -- | What we were expecting at the point there was a parse error.
 data Expected t s p

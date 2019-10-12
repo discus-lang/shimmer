@@ -1,38 +1,10 @@
 
 module SMR.Core.Exp
-        ( -- * Abstract Syntax
-          Decl  (..)
-        , Exp   (..)
-        , Param (..)
-        , Form  (..)
-        , Key   (..)
-        , Train
-        , Car   (..)
-        , Snv   (..), SnvBind(..)
-        , Ups   (..), UpsBump
-        , Ref   (..)
-        , Name, Nom, Depth, Bump
-        , Text
-
-         -- * Compounds
-        , makeXApps, takeXApps
-        , makeXAbs
-        , nameOfParam, formOfParam
-
-         -- * Substitution Trains
-        , trainCons
-        , trainAppend
-        , trainApply
-        , snvApply
-        , snvOfNamesArgs
-
-        -- * Substitution Pushing
-        , pushHead
-        , pushDeep)
+        ( module SMR.Core.Exp.Base
+        , module SMR.Core.Exp.Patterns
+        , Text)
 where
 import SMR.Core.Exp.Base
-import SMR.Core.Exp.Compounds
-import SMR.Core.Exp.Train
-import SMR.Core.Exp.Push
+import SMR.Core.Exp.Patterns
 import Data.Text                (Text)
 

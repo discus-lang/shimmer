@@ -1,13 +1,12 @@
-{-# LANGUAGE OverloadedStrings #-}
-module SMR.Prim.Op.Nat where
-import SMR.Core.Exp
-import SMR.Prim.Op.Base
 
+module SMR.Core.Prim.Nat where
+import SMR.Core.Prim.Base
+import SMR.Core.Exp
 
 type Nat = Integer
 
 -- | Primitive evaluators for nat operators.
-primOpsNat :: [PrimEval s Prim w]
+primOpsNat :: [PrimEval w]
 primOpsNat
  = [ primOpNat2Nat  "nat-add" "natural addition"            (+)
    , primOpNat2Nat  "nat-sub" "natural subtration"
@@ -28,13 +27,11 @@ primOpsNat
 -- | Construct an evaluator for a 2-arity nat operator returning nat.
 primOpNat2Nat
         :: Text -> Text -> (Nat -> Nat -> Nat)
-        -> PrimEval s Prim w
+        -> PrimEval w
 primOpNat2Nat name desc fn
- =  PrimEval (PrimOp name) desc [PVal, PVal] fn'
- where  fn' _world as0
-         | Just (n1, as1) <- takeArgNat as0
-         , Just (n2, [])  <- takeArgNat as1
-         = return $ Just $ makeXNat (fn n1 n2)
+ =  PrimEval (PrimOp name) desc fn'
+ where  fn' _world [XNat n1, XNat n2]
+         = return $ Just $ XNat (fn n1 n2)
         fn' _world _
          = return $ Nothing
 
@@ -42,12 +39,10 @@ primOpNat2Nat name desc fn
 -- | Construct an evaluator for a 2-arity nat operator returning bool.
 primOpNat2Bool
         :: Text -> Text -> (Nat -> Nat -> Bool)
-        -> PrimEval s Prim w
+        -> PrimEval w
 primOpNat2Bool name desc fn
- =  PrimEval (PrimOp name) desc [PVal, PVal] fn'
- where  fn' _world as0
-         | Just (n1, as1) <- takeArgNat as0
-         , Just (n2, [])  <- takeArgNat as1
-         = return $ Just $ makeXBool (fn n1 n2)
+ =  PrimEval (PrimOp name) desc fn'
+ where  fn' _world [XNat n1, XNat n2]
+         = return $ Just $ XBool (fn n1 n2)
         fn' _world _
          = return $ Nothing

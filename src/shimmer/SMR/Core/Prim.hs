@@ -1,5 +1,7 @@
-module SMR.Prim.Op
-        ( primNames
+
+module SMR.Core.Prim
+        ( module SMR.Core.Prim.Base
+        , primNames
         , primOps
         , primOpsBool
         , primOpsList
@@ -8,13 +10,13 @@ module SMR.Prim.Op
         , primOpsNom
         , primOpsSym)
 where
-import SMR.Prim.Op.Base
-import SMR.Prim.Op.Bool
-import SMR.Prim.Op.Nat
-import SMR.Prim.Op.Sym
-import SMR.Prim.Op.Nom
-import SMR.Prim.Op.List
-import SMR.Prim.Op.Match
+import SMR.Core.Prim.Base
+import SMR.Core.Prim.Bool
+import SMR.Core.Prim.Nat
+import SMR.Core.Prim.Sym
+import SMR.Core.Prim.Nom
+import SMR.Core.Prim.List
+import SMR.Core.Prim.Match
 import Data.Text                (Text)
 import Data.Set                 (Set)
 import qualified Data.Set       as Set
@@ -27,7 +29,7 @@ primNames
 
 
 -- | Evaluators for all the primitive operators.
-primOps :: [PrimEval Text Prim w]
+primOps :: [PrimEval w]
 primOps
  = concat
         [ primOpsBool

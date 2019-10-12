@@ -9,7 +9,7 @@ module SMR.Core.Step
 where
 import SMR.Core.Exp
 import SMR.Core.World
-import SMR.Prim.Op.Base
+import SMR.Core.Prim.Base
 import Data.Text                (Text)
 import Data.Map                 (Map)
 import qualified Data.Map       as Map
@@ -17,19 +17,19 @@ import qualified Data.Map       as Map
 
 --------------------------------------------------------------------------------
 -- | Evaluation config
-data Config s p w
+data Config w
         = Config
         { -- | Reduce under lambda abstractions.
-          configUnderLambdas    :: !Bool
+          configUnderLambdas    :: Bool
 
           -- | Reduce arguments when head is not an abstraction.
-        , configHeadArgs        :: !Bool
+        , configHeadArgs        :: Bool
 
           -- | Primitive operator declarations.
-        , configPrims           :: !(Map p (PrimEval s p w))
+        , configPrims           :: Map Prim (PrimEval w)
 
           -- | Macro declarations.
-        , configDeclsMac        :: !(Map Name (Exp s p)) }
+        , configDeclsMac        :: Map Name Exp }
 
 
 -- | Result of evaluation.
@@ -41,18 +41,20 @@ data Result
 
 -------------------------------------------------------------------------------
 -- | Multi-step reduction to normal form.
-steps   :: (Ord p, Show p)
-        => Config s p w
-        -> World w -> Exp s p
-        -> IO (Either Text (Exp s p))
+steps   :: Config w
+        -> World w -> Exp
+        -> IO (Either Text Exp)
 
 steps !config !world !xx
+ = return $ Right xx
+
+{-
  = do   erx <- step config world xx
         case erx of
          Left ResultDone         -> return $ Right xx
          Left (ResultError err)  -> return $ Left err
          Right xx'               -> steps config world xx'
-
+-}
 
 -------------------------------------------------------------------------------
 -- | Single step reduction.
@@ -63,12 +65,14 @@ steps !config !world !xx
 --   a higher asymptotic complexity than it would with an evaluator that
 --   that manages the evaluation context properly.
 --
-step    :: (Ord p, Show p)
-        => Config s p w
-        -> World w -> Exp s p
-        -> IO (Either Result (Exp s p))
+step    :: Config w
+        -> World w -> Exp
+        -> IO (Either Result Exp)
 
 step !config !world !xx
+ = return (Left ResultDone)
+
+{-}
  = case xx of
         -- Reference
         XRef ref
@@ -349,3 +353,4 @@ stepFirst !config !world !xx !ff
                  Right x1'
                   -> return $ Right $ x1' : xs2
 
+-}

@@ -5,9 +5,7 @@ import qualified SMR.CLI.Help                   as Help
 import qualified SMR.CLI.Driver.Load            as Driver
 import qualified SMR.Core.Step                  as Step
 import qualified SMR.Core.World                 as World
-import qualified SMR.Prim.Name                  as Prim
-import qualified SMR.Prim.Op                    as Prim
-import qualified SMR.Prim.Op.Base               as Prim
+import qualified SMR.Core.Prim                  as Prim
 import qualified SMR.Source.Parser              as Source
 import qualified SMR.Source.Lexer               as Source
 import qualified SMR.Source.Pretty              as Source
@@ -26,20 +24,19 @@ import Data.Monoid
 
 
 -------------------------------------------------------------------------------
-data Mode s p w
+data Mode w
         = ModeNone
         | ModeParse
-        | ModePush (Exp s p)
-        | ModeStep (Step.Config s p w) (Exp s p)
+        | ModeStep (Step.Config w) Exp
 
 
-data State s p w
+data State w
         = State
         { -- | Current interpreter mode.
-          stateMode     :: Mode s p w
+          stateMode     :: Mode w
 
           -- | Top-level declarations parsed from source files.
-        , stateDecls    :: [Decl s p]
+        , stateDecls    :: [Decl]
 
           -- | Working source files.
         , stateFiles    :: [FilePath]
@@ -48,11 +45,11 @@ data State s p w
         , stateWorld    :: World.World w }
 
 
-type RState     = State Text Prim.Prim ()
-type RConfig    = Step.Config Text Prim.Prim ()
+type RState     = State ()
+type RConfig    = Step.Config ()
 type RWorld     = World.World  ()
-type RDecl      = Decl  Text Prim.Prim
-type RExp       = Exp   Text Prim.Prim
+type RDecl      = Decl
+type RExp       = Exp
 
 
 -------------------------------------------------------------------------------
@@ -76,7 +73,6 @@ replLoop state
           |  all Char.isSpace input
           -> case stateMode state of
                 ModeNone        -> replLoop state
-                ModePush xx     -> replPush_next state xx
                 ModeStep c xx   -> replStep_next state c xx
                 _               -> replLoop state
 
@@ -97,7 +93,6 @@ replLoop state
                                 $ map strip xs
 
                 ":parse"   : xs   -> replParse   state (unwords xs)
-                ":push"    : xs   -> replPush    state (unwords xs)
                 ":step"    : xs   -> replStep    state (unwords xs)
                 ":steps"   : xs   -> replSteps   state (unwords xs)
                 ":trace"   : xs   -> replTrace   state (unwords xs)
@@ -148,17 +143,12 @@ replPrims state
         HL.outputStr
          $ unlines
          $ [   leftPad 16 ("  #" ++ (Text.unpack $ name))
-            ++ leftPad 10  (concat [showForm f | f <- Prim.primEvalForm p])
             ++ Text.unpack (Prim.primEvalDesc p)
 
            | p@(Prim.PrimEval { Prim.primEvalName = Prim.PrimOp name })
                 <- Prim.primOps ]
 
         replLoop state
-
-showForm :: Form -> String
-showForm PVal   = "!"
-showForm PExp   = "~"
 
 leftPad :: Int -> [Char] -> [Char]
 leftPad n ss
@@ -221,29 +211,6 @@ replParse state str
                 HL.outputStr "\n"
 
                 replLoop state
-
-
--------------------------------------------------------------------------------
--- | Parse an expression and push down substitutions.
-replPush :: RState -> String -> HL.InputT IO ()
-replPush state str
- = do   result  <- liftIO $ replParseExp state str
-        case result of
-         Nothing -> replLoop state
-         Just xx -> replPush_next state xx
-
-
--- | Advance the train pusher.
-replPush_next :: RState -> RExp -> HL.InputT IO ()
-replPush_next state xx
- = case pushDeep xx of
-        Nothing -> replLoop $ state { stateMode = ModeNone }
-        Just xx'
-         -> do  liftIO  $ TL.putStrLn
-                        $ BL.toLazyText
-                        $ Source.buildExp Source.CtxTop xx'
-
-                replLoop $ state { stateMode = ModePush xx' }
 
 
 -------------------------------------------------------------------------------
@@ -369,11 +336,7 @@ replParseExp _state str
  = do   let (ts, _loc, _csRest)
                 = Source.lexTokens (Source.L 1 1) str
 
-        let config
-                = Source.Config
-                { Source.configReadSym  = Just
-                , Source.configReadPrm  = Prim.readPrim Prim.primNames }
-
+        let config = Source.Config
         case Source.parseExp config ts of
          Left err
           -> do liftIO  $ putStrLn

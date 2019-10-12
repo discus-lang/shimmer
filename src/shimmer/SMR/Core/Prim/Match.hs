@@ -1,15 +1,15 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ParallelListComp  #-}
-module SMR.Prim.Op.Match where
-import SMR.Core.Exp
+
+module SMR.Core.Prim.Match where
+import SMR.Core.Prim.Base
 import SMR.Core.World
-import SMR.Prim.Op.Base
+import SMR.Core.Exp
 import Data.IORef
 
 
 -- | Primitive matching operators.
-primOpsMatch :: [PrimEval s Prim w]
-primOpsMatch
+primOpsMatch :: [PrimEval w]
+primOpsMatch = []
+{-
  = [ primOpMatchSym
    , primOpMatchApp
    , primOpMatchAbs
@@ -161,3 +161,4 @@ primOpMatchAbs1
                 return  $ Just
                         $ XApp x2 (xIx : [xBody])
 
+-}

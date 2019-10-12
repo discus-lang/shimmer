@@ -2,13 +2,10 @@
 module SMR.CLI.Driver.Load
         (runLoadFileDecls)
 where
-import qualified SMR.Prim.Op                    as Prim
-import qualified SMR.Prim.Name                  as Prim
+import qualified SMR.Core.Prim                  as Prim
 import qualified SMR.Source.Parser              as Source
 import qualified SMR.Source.Lexer               as Source
-import qualified SMR.Core.Codec                 as Codec
 import SMR.Core.Exp                             (Decl)
-import SMR.Prim.Op.Base                         (Prim)
 import qualified Data.ByteString                as BS
 
 import qualified Foreign.Marshal.Alloc          as Foreign
@@ -20,7 +17,7 @@ import Data.Text                                (Text)
 
 
 -- | Load decls from the given file.
-runLoadFileDecls :: FilePath -> IO [Decl Text Prim]
+runLoadFileDecls :: FilePath -> IO [Decl]
 runLoadFileDecls path
  -- Shimmer text source file.
  | System.takeExtension path == ".smr"
@@ -31,8 +28,6 @@ runLoadFileDecls path
 
         let config
                 = Source.Config
-                { Source.configReadSym  = Just
-                , Source.configReadPrm  = Prim.readPrim Prim.primNames }
 
         case Source.parseDecls config ts of
          Left err       -> error $ show err
@@ -40,6 +35,7 @@ runLoadFileDecls path
 
 
  -- Somee other file.
+{-
  | otherwise
  = do
         bs      <- BS.readFile path
@@ -49,4 +45,4 @@ runLoadFileDecls path
          $ error "runLoadFileDecls: cannot load this file"
 
         return $ Codec.unpackFileDecls bs
-
+-}

@@ -1,7 +1,7 @@
-{-# LANGUAGE OverloadedStrings #-}
+
 module SMR.Source.Pretty where
+import SMR.Source.Prim
 import SMR.Core.Exp.Base
-import SMR.Prim.Name
 import Data.Monoid
 import Data.Text                                (Text)
 import Data.Text.Lazy.Builder                   (Builder)
@@ -20,16 +20,17 @@ class Build a where
 instance Build Text where
  build tx = B.fromText tx
 
+{-}
 instance Build Prim where
  build pp = buildPrim pp
-
-instance (Build s, Build p) => Build (Decl s p) where
+-}
+instance Build Decl where
  build xx = buildDecl xx
 
-instance (Build s, Build p) => Build (Exp s p) where
+instance Build Exp where
  build xx = buildExp CtxTop xx
 
-instance (Build s, Build p) => Build (Ref s p) where
+instance Build Ref where
  build xx = buildRef xx
 
 
@@ -55,9 +56,7 @@ pretty x
 
 -- Decl -----------------------------------------------------------------------
 -- | Yield a builder for a declaration.
-buildDecl
-        :: (Build s, Build p)
-        => Decl s p -> Builder
+buildDecl :: Decl -> Builder
 buildDecl dd
  = case dd of
         DeclMac n xx
@@ -69,9 +68,7 @@ buildDecl dd
 
 -- Exp ------------------------------------------------------------------------
 -- | Yield a builder for an expression.
-buildExp
-        :: (Build s, Build p)
-        => Ctx -> Exp s p -> Builder
+buildExp :: Ctx -> Exp -> Builder
 buildExp ctx xx
  = case xx of
         XRef r    -> buildRef r
@@ -79,12 +76,12 @@ buildExp ctx xx
         XVar n 0  -> B.fromText n
         XVar n d  -> B.fromText n <> "^" <> B.fromString (show d)
 
-        XKey k1 x2
-         -> let ppExp   = buildKey k1 <> " " <> buildExp CtxArg x2
-            in  case ctx of
-                 CtxArg -> parens ppExp
-                 _      -> ppExp
+        XKey k1 xx
+         -> let go []           = "]"
+                go (x : xs)     = buildExp CtxTop x <> ", " <> go xs
+            in  buildKey k1 <> " " <> "[" <> go xx
 
+{-
         XApp x1 []
          -> buildExp CtxFun x1
 
@@ -96,34 +93,16 @@ buildExp ctx xx
             in case ctx of
                 CtxArg  -> parens ppExp
                 _       -> ppExp
-
+-}
         XAbs vs x
          -> let go []        = "."
-                go (p1 : []) = buildParam p1 <> "."
-                go (p1 : ps) = buildParam p1 <> " " <> go ps
+                go (n : [])  = B.fromText n <> "."
+                go (n : ns)  = B.fromText n <> " " <> go ns
                 ss           = "\\" <> go vs <> buildExp CtxTop x
             in  case ctx of
                  CtxArg -> parens ss
                  CtxFun -> parens ss
                  _      -> ss
-
-        XSub train x
-         |  length train == 0
-         -> buildExp ctx x
-         |  otherwise
-         -> let ss     = buildTrain train <> "." <> buildExp CtxTop x
-            in  case ctx of
-                 CtxArg  -> parens ss
-                 CtxFun  -> parens ss
-                 _       -> ss
-
-
--- | Yield a builder for a parameter.
-buildParam :: Param -> Builder
-buildParam pp
- = case pp of
-        PParam n PVal    -> B.fromText n
-        PParam n PExp    -> "~" <> B.fromText n
 
 
 -- | Yield a builder for a keyword.
@@ -134,84 +113,17 @@ buildKey kk
         KRun    -> "##run"
 
 
--- Train ----------------------------------------------------------------------
--- | Yield a builder for a train.
-buildTrain  :: (Build s, Build p) => Train s p -> Builder
-buildTrain cs0
- = go cs0
- where  go []           = ""
-        go (c : cs)     = go cs <> buildCar c
-
-
--- | Yield a builder for a train car.
-buildCar :: (Build s, Build p) => Car s p -> Builder
-buildCar cc
- = case cc of
-        CSim snv        -> buildSnv snv
-        CRec snv        -> "[" <> buildSnv snv <> "]"
-        CUps ups        -> buildUps ups
-
-
--- Snv ------------------------------------------------------------------------
--- | Yield a builder for a substitution.
-buildSnv  :: (Build s, Build p) => Snv s p -> Builder
-buildSnv (SSnv vs)
- = "[" <> go (reverse vs) <> "]"
- where  go []   = ""
-        go (b : [])     = buildSnvBind b
-        go (b : bs)     = buildSnvBind b <> ", " <> go bs
-
-
--- | Yield a builder for a substitution binding.
-buildSnvBind :: (Build s, Build p) => SnvBind s p -> Builder
-buildSnvBind (BindVar name bump xx)
- | bump == 0
- = B.fromText name
- <> "=" <> buildExp CtxTop xx
-
- | otherwise
- =  B.fromText name <> "^" <> B.fromString (show bump)
- <> "=" <> buildExp CtxTop xx
-
-buildSnvBind (BindNom ix xx)
- =  "?" <> B.fromString (show ix)
- <> "=" <> buildExp CtxTop xx
-
-
--- Ups ------------------------------------------------------------------------
--- | Yield a builder for an ups.
-buildUps :: Ups -> Builder
-buildUps (UUps vs)
- = "{" <> go (reverse vs) <> "}"
- where  go []   = ""
-        go (b : [])     = buildUpsBump b
-        go (b : bs)     = buildUpsBump b <> ", " <> go bs
-
-
--- | Yield a builder for an ups bump.
-buildUpsBump :: UpsBump -> Builder
-buildUpsBump ((name, bump), inc)
- | bump == 0
- = B.fromText name
- <> "=" <> B.fromString (show inc)
-
- | otherwise
- =  B.fromText name <> "^" <> B.fromString (show bump)
- <> "=" <> B.fromString (show inc)
-
-
 -- Ref ------------------------------------------------------------------------
 -- | Yield a builder for a reference.
-buildRef :: (Build s, Build p) => Ref s p -> Builder
+buildRef :: Ref -> Builder
 buildRef rr
  = case rr of
         RSym s  -> "%" <> build s
-        RPrm p  -> "#" <> build p
         RTxt t  -> buildText t
         RMac n  -> "@" <> B.fromText n
         RSet n  -> "+" <> B.fromText n
         RNom i  -> "?" <> B.fromString (show i)
-
+        RVal v  -> buildVal v
 
 -- | Build a text string, escaping special chars in JSON style.
 buildText :: Text -> Builder
@@ -239,7 +151,7 @@ buildText tx
 
 -- Prim -----------------------------------------------------------------------
 -- | Yield a builder for a primitive.
-buildPrim :: Prim -> Builder
-buildPrim pp
- = B.fromText $ pprPrim pp
+buildVal :: Val -> Builder
+buildVal vv
+ = B.fromText $ pprVal vv
 

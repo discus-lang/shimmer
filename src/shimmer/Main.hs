@@ -5,8 +5,6 @@ import qualified SMR.CLI.Repl                   as Repl
 import qualified SMR.CLI.Driver.Load            as Driver
 import qualified SMR.Core.World                 as World
 import qualified SMR.Source.Pretty              as Source
-import qualified SMR.Core.Codec                 as Codec
-import qualified SMR.Core.Codec                 as Codec
 
 import qualified Foreign.Marshal.Alloc          as Foreign
 
@@ -34,9 +32,6 @@ main
          Config.ModeLoad file
           -> runLoad file
 
-         Config.ModeConvert file1 file2
-          -> runConvert file1 file2
-
 
 -------------------------------------------------------------------------------
 runRepl :: Maybe FilePath -> IO ()
@@ -61,6 +56,7 @@ runLoad path
 
 
 -------------------------------------------------------------------------------
+{-
 runConvert :: FilePath -> FilePath -> IO ()
 runConvert pathSrc pathDst
  -- Encode text shimmer file to binary store.
@@ -87,4 +83,4 @@ runConvert pathSrc pathDst
 
  | otherwise
  = error "runConvert: cannot convert"
-
+-}
