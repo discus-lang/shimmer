@@ -26,11 +26,11 @@ data Exp
 
 -- | Expression keys (super primitives)
 data Key
-        = KApv                          -- ^ Application to vector of arguments.
-        | KAps                          -- ^ Application to term producing a vector.
+        = KVec                          -- ^ Vector formation.
         | KBox                          -- ^ Box an expression, delaying evaluation.
         | KRun                          -- ^ Run an expression, forcing evaluation.
-        | KPrm Prim                     -- ^ Primitive application.
+        | KApp                          -- ^ Function application.
+        | KPrm Prim                     -- ^ Primitive generic application.
         deriving (Eq, Show)
 
 
@@ -57,8 +57,8 @@ type Depth = Integer
 
 -- | Primitive operators.
 data Prim
-        = PrimList
-        | PrimOp        Text
+        = PList                         -- ^ List constructor.
+        | POp           Text            -- ^ Primitive operator.
         deriving (Eq, Ord, Show)
 
 

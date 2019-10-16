@@ -29,7 +29,7 @@ primOpNat2Nat
         :: Text -> Text -> (Nat -> Nat -> Nat)
         -> PrimEval w
 primOpNat2Nat name desc fn
- =  PrimEval (PrimOp name) desc fn'
+ =  PrimEval (POp name) desc fn'
  where  fn' _world [XNat n1, XNat n2]
          = return $ Just $ XNat (fn n1 n2)
         fn' _world _
@@ -41,7 +41,7 @@ primOpNat2Bool
         :: Text -> Text -> (Nat -> Nat -> Bool)
         -> PrimEval w
 primOpNat2Bool name desc fn
- =  PrimEval (PrimOp name) desc fn'
+ =  PrimEval (POp name) desc fn'
  where  fn' _world [XNat n1, XNat n2]
          = return $ Just $ XBool (fn n1 n2)
         fn' _world _

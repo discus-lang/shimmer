@@ -145,7 +145,7 @@ replPrims state
          $ [   leftPad 16 ("  #" ++ (Text.unpack $ name))
             ++ Text.unpack (Prim.primEvalDesc p)
 
-           | p@(Prim.PrimEval { Prim.primEvalName = Prim.PrimOp name })
+           | p@(Prim.PrimEval { Prim.primEvalName = Prim.POp name })
                 <- Prim.primOps ]
 
         replLoop state

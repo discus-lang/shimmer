@@ -1,3 +1,4 @@
+
 module SMR.Source.Prim where
 import SMR.Core.Exp
 import SMR.Core.Prim
@@ -8,8 +9,14 @@ import qualified Data.Char      as C
 import qualified Data.Text      as T
 import Numeric
 
-
 -- | Pretty print a primitive operator.
+pprPrim :: Prim -> Text
+pprPrim pp
+ = case pp of
+        PList           -> T.pack "list"
+        POp p           -> p
+
+-- | Pretty print a primitive value.
 pprVal :: Val -> Text
 pprVal pp
  = case pp of
@@ -38,8 +45,8 @@ pprVal pp
 
 
 -- | Parse a primitive name, without the leading '#'.
-readVal :: Set Text -> Text -> Maybe Val
-readVal ps tx
+readLitVal :: Text -> Maybe Val
+readLitVal tx
  -- Literal Booleans.
  | tx == "true"         = Just $ VBool True
  | tx == "false"        = Just $ VBool False
@@ -51,7 +58,7 @@ readVal ps tx
  , not $ null tx'
  = Just $ VNat (read tx')
 
- | tx == "unit" = Just VUnit
+ | tx == "unit"         = Just VUnit
 
  -- Unrecognised.
  | otherwise

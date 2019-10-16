@@ -1,6 +1,7 @@
 
 module SMR.Source.Parser where
 import SMR.Core.Exp
+import SMR.Source.Prim
 import SMR.Source.Expected
 import SMR.Source.Token
 import SMR.Source.Lexer
@@ -8,6 +9,7 @@ import SMR.Data.Located
 
 import Data.Text                        (Text)
 
+import qualified SMR.Core.Prim          as Prim
 import qualified SMR.Source.Parsec      as P
 import qualified SMR.Data.Bag           as Bag
 import qualified Data.Text              as Text
@@ -89,32 +91,54 @@ pDecl c
 
 -- Exp ------------------------------------------------------------------------
 -- | Parser for an expression.
-pExp :: Config -> Parser Exp
+pExp  :: Config -> Parser Exp
 pExp c
-        -- Abstraction.
  = P.alts
- [ do   _       <- pPunc '{'
+ [ do   _       <- pPunc '['
+        xs      <- P.sepBy (pExp c) (pPunc ',')
+        _       <- pPunc ']'
+        return  $ XVec xs
+
+ , do   -- Box
+        _       <- pPunc '~'
+        x       <- pExp c
+        return  $ XBox x
+
+ , do   -- Run
+        _       <- pPunc '!'
+        x       <- pExp c
+        return  $ XRun x
+
+ , do   -- Abstraction.
+        _       <- pPunc '{'
         nsBind  <- P.some (pNameOfSpace SVar)
         _       <- pPunc '}'
         xBody   <- pExp c
         return  $ XAbs  nsBind xBody
 
-        -- Application possibly using '$'
- , do   xHead   <- pExpApp c
-        P.alt
-            (do _       <- pPunc '$'
+ , do   -- Application possibly using '$'
+        xHead   <- pExpApp c
+        P.alts
+         [ do   _       <- pPunc '$'
                 xRest   <- pExp c
-                return  $  XAps xHead xRest)
-            (return xHead)
+                return  $  XApp xHead xRest
+
+         , return xHead ]
+
+ , do   -- Vector formation.
+        _       <- pPunc '['
+        xs      <- P.sepBy (pExp c) (pPunc ',')
+        _       <- pPunc ']'
+        return  $  XVec xs
  ]
 
 
 -- | Parser for an application.
 pExpApp :: Config -> Parser Exp
 pExpApp c
-        -- Application of a superprim.
  = P.alts
- [ do   nKey
+ [ do   -- Application of a superprim.
+        nKey
          <- do  nKey'   <- pNameOfSpace SKey
                 if       nKey' == Text.pack "box" then return KBox
                  else if nKey' == Text.pack "run" then return KRun
@@ -123,11 +147,37 @@ pExpApp c
         xArg    <- pExpAtom c
         return $ XKey nKey [xArg]
 
-        -- Application of some other expression.
- , do   xFun    <- pExpAtom c
-        xArg    <- pExpAtom c
-        return  $ XAps xFun xArg
+ , do   -- Primitive application.
+        -- Primitives must be saturated with a vector of arguments.
+        nPrm    <- pNameOfSpace SPrm
+        xArg    <- pExp c
+        xsArg   <- P.some (pExp c)
+        return  $  makeXApps (XPrm (POp nPrm) xArg) xsArg
+
+ , do   -- General  application.
+        xFun    <- pExpAtom c
+        xsArg   <- P.many (pExp c)
+        return  $  makeXApps xFun xsArg
+
+        -- Atom
+ , do   pExpAtom c
  ]
+
+
+pExpArgVec  :: Config -> Parser (Either Exp [Exp])
+pExpArgVec c
+ = P.alts
+ [ do   fmap Right (pExpVec c)
+ , do   fmap Left  (pExpAtom c) ]
+
+
+-- | Parser for a vector of expressions.
+pExpVec :: Config -> Parser [Exp]
+pExpVec c
+ = do   _       <- pPunc '['
+        xs      <- P.sepBy (pExp c) (pPunc ',')
+        _       <- pPunc ']'
+        return xs
 
 
 -- | Parser for an atomic expression.
@@ -170,12 +220,11 @@ pExpAtom c
          SSym -> return $ XRef (RSym name)
 
          -- Named primitive.
-{-}
          SPrm
-          -> case configReadPrm c name of
-                Just p  -> return (XRef (RPrm p))
-                Nothing -> P.fail
--}
+          -> case readLitVal name of
+                Just v  -> return (XVal v)
+                _       -> error $ "unknown literal" ++ show name
+
          -- Named keyword.
          SKey -> P.fail
 

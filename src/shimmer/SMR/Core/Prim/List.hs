@@ -15,7 +15,7 @@ primOpsList
 primOpListCons :: PrimEval w
 primOpListCons
  = PrimEval
-        (PrimOp "list-cons")
+        (POp "list-cons")
         "add an element to the front of a list"
         fn'
  where
@@ -29,7 +29,7 @@ primOpListCons
 primOpListUncons :: PrimEval w
 primOpListUncons
  = PrimEval
-        (PrimOp "list-uncons")
+        (POp "list-uncons")
         "split an element from the front of a list"
         fn'
  where
@@ -43,7 +43,7 @@ primOpListUncons
 primOpListAppend :: PrimEval w
 primOpListAppend
  = PrimEval
-        (PrimOp "list-append")
+        (POp "list-append")
         "append two lists"
         fn'
  where

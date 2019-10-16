@@ -9,15 +9,16 @@ pattern XSet n          = XRef (RSet n)
 pattern XNom n          = XRef (RNom n)
 pattern XVal v          = XRef (RVal v)
 
-pattern XApv xFun xsArg = XKey KApv (xFun : xsArg)
-pattern XAps xFun  xArg = XKey KAps [xFun, xArg]
+pattern XVec xs         = XKey KVec xs
 pattern XBox x          = XKey KBox [x]
 pattern XRun x          = XKey KRun [x]
-pattern XPrm p    xsArg = XKey (KPrm p) xsArg
+pattern XPrm p     xArg = XKey (KPrm p) [xArg]
+pattern XApp xFun  xArg = XKey KApp [xFun, xArg]
+pattern XApv xFun xsArg = XApp xFun (XVec xsArg)
 
 pattern XUnit           = XVal VUnit
 
-pattern XList xs        = XPrm PrimList xs
+pattern XList xs        = XPrm PList xs
 pattern XLIST vs        = XVal (VList vs)
 
 pattern XBool b         = XVal (VBool b)

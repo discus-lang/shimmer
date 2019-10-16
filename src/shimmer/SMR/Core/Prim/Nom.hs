@@ -17,7 +17,7 @@ primOpsNom
 primOpNomEq :: PrimEval w
 primOpNomEq
  = PrimEval
-        (PrimOp "nom-eq")
+        (POp "nom-eq")
         ("check equality of two nominal variables")
         fn'
  where
@@ -31,7 +31,7 @@ primOpNomEq
 primOpNomFresh :: PrimEval w
 primOpNomFresh
  = PrimEval
-        (PrimOp "nom-fresh")
+        (POp "nom-fresh")
         "allocate a fresh nominal variable"
         fn'
  where

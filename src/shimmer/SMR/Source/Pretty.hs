@@ -78,6 +78,7 @@ buildExp ctx xx
 
         XKey k1 xx
          -> let go []           = "]"
+                go (x : [])     = buildExp CtxTop x <> "]"
                 go (x : xs)     = buildExp CtxTop x <> ", " <> go xs
             in  buildKey k1 <> " " <> "[" <> go xx
 
@@ -95,10 +96,10 @@ buildExp ctx xx
                 _       -> ppExp
 -}
         XAbs vs x
-         -> let go []        = "."
-                go (n : [])  = B.fromText n <> "."
+         -> let go []        = "} "
+                go (n : [])  = B.fromText n <> "} "
                 go (n : ns)  = B.fromText n <> " " <> go ns
-                ss           = "\\" <> go vs <> buildExp CtxTop x
+                ss           = "{" <> go vs <> buildExp CtxTop x
             in  case ctx of
                  CtxArg -> parens ss
                  CtxFun -> parens ss
@@ -109,8 +110,11 @@ buildExp ctx xx
 buildKey :: Key -> Builder
 buildKey kk
  = case kk of
+        KVec    -> "##vec"
         KBox    -> "##box"
         KRun    -> "##run"
+        KApp    -> "##app"
+        KPrm p  -> "##prm" <> " #" <> B.fromText (pprPrim p)
 
 
 -- Ref ------------------------------------------------------------------------
@@ -153,5 +157,5 @@ buildText tx
 -- | Yield a builder for a primitive.
 buildVal :: Val -> Builder
 buildVal vv
- = B.fromText $ pprVal vv
+ = "#" <> (B.fromText $ pprVal vv)
 

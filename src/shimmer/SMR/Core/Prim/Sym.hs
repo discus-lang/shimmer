@@ -14,7 +14,7 @@ primOpsSym
 primOpSymEq :: PrimEval w
 primOpSymEq
  = PrimEval
-        (PrimOp "sym-eq")
+        (POp "sym-eq")
         ("check equality of two symbols")
         fn'
  where
