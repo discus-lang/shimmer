@@ -12,12 +12,12 @@ import SMR.Core.World
 data PrimEval w
         = PrimEval
         { -- ^ Operator name.
-          primEvalName  :: Prim
+          primEvalName  :: PrimOp
 
           -- ^ Operator description.
         , primEvalDesc  :: Text
 
           -- ^ Operator evaluation function.
-        , primEvalFun  :: World w -> [Exp] -> IO (Maybe Exp)
+        , primEvalFun  :: World w -> [Val] -> IO (Maybe [Val])
         }
 

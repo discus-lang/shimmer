@@ -17,12 +17,12 @@ primOpsNom
 primOpNomEq :: PrimEval w
 primOpNomEq
  = PrimEval
-        (POp "nom-eq")
+        (POPrim "nom'eq")
         ("check equality of two nominal variables")
         fn'
  where
-        fn' _world [XNom n1, XNom n2]
-         = return $ Just $ if n1 == n2 then XTrue else XFalse
+        fn' _world [VNom n1, VNom n2]
+         = return $ Just $ if n1 == n2 then [VTrue] else [VFalse]
         fn' _world _
          = return $ Nothing
 
@@ -31,14 +31,14 @@ primOpNomEq
 primOpNomFresh :: PrimEval w
 primOpNomFresh
  = PrimEval
-        (POp "nom-fresh")
+        (POPrim "nom'fresh")
         "allocate a fresh nominal variable"
         fn'
  where
-        fn' world [XUnit]
+        fn' world [VUnit]
          = do   ix  <- readIORef (worldNomGen world)
                 writeIORef (worldNomGen world) (ix + 1)
-                return $ Just $ XNom ix
+                return $ Just [VNom ix]
 
         fn' _world _
          = do   return $ Nothing
@@ -49,7 +49,7 @@ primOpNomFresh
 primOpNomClose :: PrimEval w
 primOpNomClose
  = PrimEval
-        (PrimOp "nom-close")
+        (PrimOp "nom'close")
         ("creating a closing substitution for a nominal variable")
         [PVal, PExp, PExp] fn'
  where

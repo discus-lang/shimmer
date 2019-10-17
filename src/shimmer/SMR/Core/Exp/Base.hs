@@ -3,6 +3,7 @@ module SMR.Core.Exp.Base where
 import Data.Text        (Text)
 import Data.Int
 import Data.Word
+import Data.Map         (Map)
 
 
 -- | Top-level declaration,
@@ -15,7 +16,8 @@ data Decl
 
 -- | Expression parameterized by the type for primitives.
 data Exp
-        = XRef  Ref                     -- ^ External reference.
+        = XVal  Val                     -- ^ Value.
+        | XMac  Name                    -- ^ Macro name.
         | XVar  Name    Depth           -- ^ Variable name with bump.
         | XAbs  [Name]  Exp             -- ^ Abstraction with parameter names and body.
         | XLet  [Name]  [Exp] Exp       -- ^ Non-recursive bindings.
@@ -27,10 +29,8 @@ data Exp
 -- | Expression keys (super primitives)
 data Key
         = KVec                          -- ^ Vector formation.
-        | KBox                          -- ^ Box an expression, delaying evaluation.
-        | KRun                          -- ^ Run an expression, forcing evaluation.
         | KApp                          -- ^ Function application.
-        | KPrm Prim                     -- ^ Primitive generic application.
+        | KPrm PrimOp                   -- ^ Primitive operator application.
         deriving (Eq, Show)
 
 
@@ -38,10 +38,8 @@ data Key
 data Ref
         = RSym  Text                    -- ^ Uninterpreted symbol.
         | RTxt  Text                    -- ^ Text string.
-        | RMac  Name                    -- ^ Macro name.
         | RSet  Name                    -- ^ Set name.
         | RNom  Nom                     -- ^ Nominal constant.
-        | RVal  Val                     -- ^ Value
         deriving (Eq, Show)
 
 
@@ -54,35 +52,44 @@ type Nom   = Integer
 -- | Binding depth.
 type Depth = Integer
 
+-- | Environments.
+type Env = Map Name Val
+
+-- | Values
+data Val
+        = VRef          Ref
+        | VPrim         PrimVal
+        | VList         [Val]
+        | VClo          [Env] [Name] Exp
+        deriving (Eq, Show)
+
 
 -- | Primitive operators.
-data Prim
-        = PList                         -- ^ List constructor.
-        | POp           Text            -- ^ Primitive operator.
+data PrimOp
+        = POList                         -- ^ List constructor.
+        | POPrim        Text            -- ^ Primitive operator.
         deriving (Eq, Ord, Show)
 
 
 -- | Primitive values.
-data Val
-        = VUnit
-        | VBool         Bool
+data PrimVal
+        = PVUnit
+        | PVBool        Bool
 
-        | VNat          Integer
-        | VInt          Integer
+        | PVNat         Integer
+        | PVInt         Integer
 
-        | VWord8        Word8
-        | VWord16       Word16
-        | VWord32       Word32
-        | VWord64       Word64
+        | PVWord8       Word8
+        | PVWord16      Word16
+        | PVWord32      Word32
+        | PVWord64      Word64
 
-        | VInt8         Int8
-        | VInt16        Int16
-        | VInt32        Int32
-        | VInt64        Int64
+        | PVInt8        Int8
+        | PVInt16       Int16
+        | PVInt32       Int32
+        | PVInt64       Int64
 
-        | VFloat32      Float
-        | VFloat64      Double
-
-        | VList         [Val]
-        deriving (Eq, Ord, Show)
+        | PVFloat32     Float
+        | PVFloat64     Double
+        deriving (Eq, Show)
 

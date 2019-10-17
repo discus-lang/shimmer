@@ -11,7 +11,7 @@ import qualified Data.Text              as Text
 
 -------------------------------------------------------------------------------
 -- | What we were expecting at the point there was a parse error.
-data Expected t s p
+data Expected t s
         -- | Expecting end of input.
         = ExBaseEnd
 
@@ -36,19 +36,19 @@ data Expected t s p
         -- | Expecting something while parsing a declaration.
         | ExContextDecl
                 Text
-                (Bag (Blocker t (Expected t s p)))
+                (Bag (Blocker t (Expected t s)))
 
         -- | Expecting something while parsing a binding.
         | ExContextBind
                 Text
-                (Bag (Blocker t (Expected t s p)))
+                (Bag (Blocker t (Expected t s)))
         deriving Show
 
 
 -- | Pretty print an expected thing.
 pprExpected
-        :: (Show s, Show p)
-        => Expected (Located Token) s p -> String
+        :: Show s
+        => Expected (Located Token) s -> String
 pprExpected bb
  = case bb of
         ExBaseEnd       -> "expecting end of input"
@@ -74,8 +74,8 @@ pprExpected bb
 
 -- | Pretty print a blocker.
 pprBlocker
-        :: (Show s, Show p)
-        => Blocker (Located Token) (Expected (Located Token) s p)
+        :: Show s
+        => Blocker (Located Token) (Expected (Located Token) s)
         -> String
 
 pprBlocker (Blocker [] e)
@@ -100,8 +100,8 @@ data ParseError t e
 
 -- | Pretty print a parser error.
 pprParseError
-        :: (Show s, Show p)
-        => ParseError (Located Token) (Expected (Located Token) s p) -> String
+        :: Show s
+        => ParseError (Located Token) (Expected (Located Token) s) -> String
 
 pprParseError (ParseError [])
  = "at end of input"

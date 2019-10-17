@@ -3,6 +3,7 @@ module SMR.CLI.Repl where
 import SMR.Core.Exp
 import qualified SMR.CLI.Help                   as Help
 import qualified SMR.CLI.Driver.Load            as Driver
+import qualified SMR.Core.Eval                  as Eval
 import qualified SMR.Core.Step                  as Step
 import qualified SMR.Core.World                 as World
 import qualified SMR.Core.Prim                  as Prim
@@ -27,7 +28,7 @@ import Data.Monoid
 data Mode w
         = ModeNone
         | ModeParse
-        | ModeStep (Step.Config w) Exp
+        | ModeEval (Step.Config w) Exp
 
 
 data State w
@@ -56,7 +57,7 @@ type RExp       = Exp
 replStart :: RState -> IO ()
 replStart state
  = HL.runInputT HL.defaultSettings
- $ do   HL.outputStrLn "Shimmer, version 0.1. The Lambda Machine."
+ $ do   HL.outputStrLn "Shimmer v0.2. The Lambda Machine."
         HL.outputStrLn "Type :help for help."
         replReload state
 
@@ -72,8 +73,6 @@ replLoop state
          Just input
           |  all Char.isSpace input
           -> case stateMode state of
-                ModeNone        -> replLoop state
-                ModeStep c xx   -> replStep_next state c xx
                 _               -> replLoop state
 
           | otherwise
@@ -93,10 +92,9 @@ replLoop state
                                 $ map strip xs
 
                 ":parse"   : xs   -> replParse   state (unwords xs)
-                ":step"    : xs   -> replStep    state (unwords xs)
-                ":steps"   : xs   -> replSteps   state (unwords xs)
+                ":eval"    : xs   -> replEval    state (unwords xs)
                 ":trace"   : xs   -> replTrace   state (unwords xs)
-                _                 -> replSteps   state input
+                _                 -> replEval    state input
 
 
 -------------------------------------------------------------------------------
@@ -145,7 +143,7 @@ replPrims state
          $ [   leftPad 16 ("  #" ++ (Text.unpack $ name))
             ++ Text.unpack (Prim.primEvalDesc p)
 
-           | p@(Prim.PrimEval { Prim.primEvalName = Prim.POp name })
+           | p@(Prim.PrimEval { Prim.primEvalName = Prim.POPrim name })
                 <- Prim.primOps ]
 
         replLoop state
@@ -215,59 +213,23 @@ replParse state str
 
 -------------------------------------------------------------------------------
 -- | Parse an expression and single-step it.
-replStep :: RState -> String -> HL.InputT IO ()
-replStep state str
- = replLoadExp state str replStep_next
+replEval :: RState -> String -> HL.InputT IO ()
+replEval state str
+ = replLoadExp state str replEval_next
 
 -- | Advance the single stepper.
-replStep_next
+replEval_next
         :: RState -> RConfig -> RExp
         -> HL.InputT IO ()
 
-replStep_next state config xx
- = do   erx     <- liftIO $ Step.step config (stateWorld state) xx
-        case erx of
-         Left Step.ResultDone
-          -> replLoop $ state { stateMode = ModeNone }
+replEval_next state config xx
+ = do   vs <- liftIO $ Eval.eval config (stateWorld state) [] xx
 
-         Left (Step.ResultError msg)
-          -> do  HL.outputStrLn
-                         $ Text.unpack
-                         $ Text.pack "error: " <> msg
+        liftIO  $ TL.putStrLn
+                $ BL.toLazyText
+                $ Source.buildExp Source.CtxTop (XVec $ map XVal vs)
 
-         Right xx'
-          -> do  liftIO  $ TL.putStrLn
-                         $ BL.toLazyText
-                         $ Source.buildExp Source.CtxTop xx'
-
-                 replLoop $ state { stateMode = ModeStep config xx' }
-
-
--------------------------------------------------------------------------------
--- | Parse an expression and normalize it.
-replSteps :: RState -> String -> HL.InputT IO ()
-replSteps state str
- = replLoadExp state str replSteps_next
-
--- | Advance the evaluator stepper.
-replSteps_next
-        :: RState -> RConfig -> RExp
-        -> HL.InputT IO ()
-
-replSteps_next state config xx
- = do   erx     <- liftIO $ Step.steps config (stateWorld state) xx
-        case erx of
-         Left msg
-          -> do  HL.outputStrLn
-                         $ Text.unpack
-                         $ Text.pack "error: " <> msg
-
-         Right xx'
-          -> do  liftIO  $ TL.putStrLn
-                         $ BL.toLazyText
-                         $ Source.buildExp Source.CtxTop xx'
-
-                 replLoop $ state { stateMode = ModeNone }
+        replLoop $ state { stateMode = ModeNone }
 
 
 -------------------------------------------------------------------------------
@@ -322,9 +284,7 @@ replLoadExp state str eat
                         $ [ (Prim.primEvalName p, p) | p <- Prim.primOps ]
 
                 config  = Step.Config
-                        { Step.configUnderLambdas = True
-                        , Step.configHeadArgs     = True
-                        , Step.configDeclsMac     = decls
+                        { Step.configDeclsMac     = decls
                         , Step.configPrims        = prims }
 
               in eat state config xx

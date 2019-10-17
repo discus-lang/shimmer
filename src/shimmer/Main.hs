@@ -23,14 +23,9 @@ main
         config  <- Config.parseArgs args Config.configZero
 
         case Config.configMode config of
-         Config.ModeNone
-          -> runRepl Nothing
-
-         Config.ModeREPL mFile
-          -> runRepl mFile
-
-         Config.ModeLoad file
-          -> runLoad file
+         Config.ModeNone        -> runRepl Nothing
+         Config.ModeREPL mFile  -> runRepl mFile
+         Config.ModeLoad file   -> runLoad file
 
 
 -------------------------------------------------------------------------------

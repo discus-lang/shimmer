@@ -17,10 +17,10 @@ import qualified Data.Text              as Text
 
 -------------------------------------------------------------------------------
 type Parser a
-        = P.Parser (Located Token) (Expected (Located Token) Text Prim) a
+        = P.Parser (Located Token) (Expected (Located Token) Text) a
 
 type Error
-         = ParseError (Located Token) (Expected (Located Token) Text Prim)
+         = ParseError (Located Token) (Expected (Located Token) Text)
 
 data Config
         = Config
@@ -94,22 +94,7 @@ pDecl c
 pExp  :: Config -> Parser Exp
 pExp c
  = P.alts
- [ do   _       <- pPunc '['
-        xs      <- P.sepBy (pExp c) (pPunc ',')
-        _       <- pPunc ']'
-        return  $ XVec xs
-
- , do   -- Box
-        _       <- pPunc '~'
-        x       <- pExp c
-        return  $ XBox x
-
- , do   -- Run
-        _       <- pPunc '!'
-        x       <- pExp c
-        return  $ XRun x
-
- , do   -- Abstraction.
+ [ do   -- Abstraction.
         _       <- pPunc '{'
         nsBind  <- P.some (pNameOfSpace SVar)
         _       <- pPunc '}'
@@ -124,12 +109,6 @@ pExp c
                 return  $  XApp xHead xRest
 
          , return xHead ]
-
- , do   -- Vector formation.
-        _       <- pPunc '['
-        xs      <- P.sepBy (pExp c) (pPunc ',')
-        _       <- pPunc ']'
-        return  $  XVec xs
  ]
 
 
@@ -137,58 +116,48 @@ pExp c
 pExpApp :: Config -> Parser Exp
 pExpApp c
  = P.alts
- [ do   -- Application of a superprim.
-        nKey
-         <- do  nKey'   <- pNameOfSpace SKey
-                if       nKey' == Text.pack "box" then return KBox
-                 else if nKey' == Text.pack "run" then return KRun
-                 else P.fail
-
-        xArg    <- pExpAtom c
-        return $ XKey nKey [xArg]
-
- , do   -- Primitive application.
+ [ do   -- Primitive application.
         -- Primitives must be saturated with a vector of arguments.
         nPrm    <- pNameOfSpace SPrm
-        xArg    <- pExp c
-        xsArg   <- P.some (pExp c)
-        return  $  makeXApps (XPrm (POp nPrm) xArg) xsArg
+        xArg    <- pExpArg c
+        xsArg   <- P.some (pExpArg c)
+        return  $  makeXApps (XPrm (POPrim nPrm) xArg) xsArg
 
  , do   -- General  application.
-        xFun    <- pExpAtom c
-        xsArg   <- P.many (pExp c)
+        xFun    <- pExpArg c
+        xsArg   <- P.many (pExpArg c)
         return  $  makeXApps xFun xsArg
 
         -- Atom
- , do   pExpAtom c
+ , do   pExpArg c
  ]
 
 
-pExpArgVec  :: Config -> Parser (Either Exp [Exp])
-pExpArgVec c
- = P.alts
- [ do   fmap Right (pExpVec c)
- , do   fmap Left  (pExpAtom c) ]
-
-
--- | Parser for a vector of expressions.
-pExpVec :: Config -> Parser [Exp]
+-- | Vector.
+pExpVec :: Config -> Parser Exp
 pExpVec c
- = do   _       <- pPunc '['
+ = do   -- Vector formation.
+        _       <- pPunc '['
         xs      <- P.sepBy (pExp c) (pPunc ',')
         _       <- pPunc ']'
-        return xs
+        return  $  XVec xs
 
 
--- | Parser for an atomic expression.
-pExpAtom :: Config -> Parser Exp
-pExpAtom c
-        -- Parenthesised expression.
+-- | Parser for an argument expression.
+pExpArg :: Config -> Parser Exp
+pExpArg c
  = P.alts
- [ do   _       <- pPunc '('
+ [ do   -- Parenthesised expression.
+        _       <- pPunc '('
         x       <- pExp c
         _       <- pPunc ')'
         return x
+
+ , do   -- Vector formation.
+        _       <- pPunc '['
+        xs      <- P.sepBy (pExp c) (pPunc ',')
+        _       <- pPunc ']'
+        return  $  XVec xs
 
         -- Nominal variable.
  , do   _ <- pPunc '?'
@@ -203,15 +172,15 @@ pExpAtom c
  , do   (space, name) <- pName
 
         case space of
+         -- Named macro.
+         SMac -> return $ XMac name
+
          -- Named variable.
          SVar
           -> P.alt (do  _       <- pPunc '^'
                         ix      <- pNat
                         return  $ XVar name ix)
                    (return $ XVar name 0)
-
-         -- Named macro.
-         SMac -> return $ XRef (RMac name)
 
          -- Named set.
          SSet -> return $ XRef (RSet name)

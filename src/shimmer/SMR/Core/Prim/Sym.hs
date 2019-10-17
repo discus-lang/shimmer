@@ -14,11 +14,11 @@ primOpsSym
 primOpSymEq :: PrimEval w
 primOpSymEq
  = PrimEval
-        (POp "sym-eq")
+        (POPrim "sym'eq")
         ("check equality of two symbols")
         fn'
  where
-        fn' _world [XSym s1, XSym s2]
-         = return $ Just $ if s1 == s2 then XTrue else XFalse
+        fn' _world [VSym s1, VSym s2]
+         = return $ Just $ if s1 == s2 then [VTrue] else [VFalse]
         fn' _world _
          = return $ Nothing

@@ -1,6 +1,7 @@
 
 module SMR.Source.Pretty where
 import SMR.Source.Prim
+import SMR.Core.Exp.Patterns
 import SMR.Core.Exp.Base
 import Data.Monoid
 import Data.Text                                (Text)
@@ -29,9 +30,6 @@ instance Build Decl where
 
 instance Build Exp where
  build xx = buildExp CtxTop xx
-
-instance Build Ref where
- build xx = buildRef xx
 
 
 -- | Context we're currently in when pretty printing.
@@ -71,30 +69,13 @@ buildDecl dd
 buildExp :: Ctx -> Exp -> Builder
 buildExp ctx xx
  = case xx of
-        XRef r    -> buildRef r
+        XVal v    -> B.fromText $ pprVal v
+
+        XMac n    -> B.fromText $ "@" <> n
 
         XVar n 0  -> B.fromText n
         XVar n d  -> B.fromText n <> "^" <> B.fromString (show d)
 
-        XKey k1 xx
-         -> let go []           = "]"
-                go (x : [])     = buildExp CtxTop x <> "]"
-                go (x : xs)     = buildExp CtxTop x <> ", " <> go xs
-            in  buildKey k1 <> " " <> "[" <> go xx
-
-{-
-        XApp x1 []
-         -> buildExp CtxFun x1
-
-        XApp x1 xs2
-         -> let ppExp   =  buildExp CtxFun x1 <> " " <> go xs2
-                go []               = ""
-                go (x : [])         = buildExp CtxArg x
-                go (x11 : x21 : xs) = buildExp CtxArg x11 <> " " <> go (x21 : xs)
-            in case ctx of
-                CtxArg  -> parens ppExp
-                _       -> ppExp
--}
         XAbs vs x
          -> let go []        = "} "
                 go (n : [])  = B.fromText n <> "} "
@@ -105,29 +86,52 @@ buildExp ctx xx
                  CtxFun -> parens ss
                  _      -> ss
 
+        XVec xs
+         -> let go []           = "]"
+                go (x : [])     = buildExp CtxTop x <> "]"
+                go (x : xs)     = buildExp CtxTop x <> ", " <> go xs
+            in  "[" <> go xs
+
+        XApp xFun xArg
+         -> let ppExp   =  buildExp CtxFun xFun <> " "
+                        <> buildExp CtxArg xArg
+            in  case ctx of
+                 CtxArg -> parens ppExp
+                 _      -> ppExp
+
+        XPrm p xArg
+         -> let ppExp   =  "#" <> B.fromText (pprPrimOp p) <> " "
+                        <> buildExp CtxArg xArg
+            in  case ctx of
+                 CtxArg -> parens ppExp
+                 _      -> ppExp
+
+        XKey k1 xx
+         -> let go []           = "]"
+                go (x : [])     = buildExp CtxTop x <> "]"
+                go (x : xs)     = buildExp CtxTop x <> ", " <> go xs
+            in  buildKey k1 <> " " <> "[" <> go xx
+
 
 -- | Yield a builder for a keyword.
 buildKey :: Key -> Builder
 buildKey kk
  = case kk of
         KVec    -> "##vec"
-        KBox    -> "##box"
-        KRun    -> "##run"
         KApp    -> "##app"
-        KPrm p  -> "##prm" <> " #" <> B.fromText (pprPrim p)
+        KPrm p  -> "##prm" <> " #" <> B.fromText (pprPrimOp p)
 
 
 -- Ref ------------------------------------------------------------------------
 -- | Yield a builder for a reference.
-buildRef :: Ref -> Builder
-buildRef rr
+pprRef :: Ref -> Text
+pprRef  rr
  = case rr of
-        RSym s  -> "%" <> build s
-        RTxt t  -> buildText t
-        RMac n  -> "@" <> B.fromText n
-        RSet n  -> "+" <> B.fromText n
-        RNom i  -> "?" <> B.fromString (show i)
-        RVal v  -> buildVal v
+        RSym s  -> "%" <> s
+        RTxt t  -> t
+        RSet n  -> "+" <> n
+        RNom i  -> "?" <> T.pack (show i)
+
 
 -- | Build a text string, escaping special chars in JSON style.
 buildText :: Text -> Builder
@@ -159,3 +163,48 @@ buildVal :: Val -> Builder
 buildVal vv
  = "#" <> (B.fromText $ pprVal vv)
 
+
+-- Val ------------------------------------------------------------------------
+-- | Pretty print a primitive value.
+pprVal :: Val -> Text
+pprVal vv
+ = case vv of
+        VRef r          -> pprRef r
+        VPrim p         -> pprPrimVal p
+        VList vs        -> "[list|" <> T.intercalate "," (map pprVal vs) <> "]"
+
+
+-- PrimOp ---------------------------------------------------------------------
+-- | Pretty print a primitive operator.
+pprPrimOp :: PrimOp -> Text
+pprPrimOp po
+ = case po of
+        POList          -> "list"
+        POPrim op       -> op
+
+
+-- PrimVal --------------------------------------------------------------------
+-- | Pretty print a primitive value.
+pprPrimVal :: PrimVal -> Text
+pprPrimVal pv
+ = case pv of
+        PVUnit          -> T.pack "unit"
+
+        PVBool True     -> T.pack "true"
+        PVBool False    -> T.pack "false"
+
+        PVNat n         -> T.pack $ "nat'" ++ show n
+        PVInt i         -> T.pack $ "int'" ++ show i
+
+        PVWord8  w      -> T.pack $ "w8'"  ++ Numeric.showHex w ""
+        PVWord16 w      -> T.pack $ "w16'" ++ Numeric.showHex w ""
+        PVWord32 w      -> T.pack $ "w32'" ++ Numeric.showHex w ""
+        PVWord64 w      -> T.pack $ "w64'" ++ Numeric.showHex w ""
+
+        PVInt8   i      -> T.pack $ "i8'"  ++ show i
+        PVInt16  i      -> T.pack $ "i16'" ++ show i
+        PVInt32  i      -> T.pack $ "i32'" ++ show i
+        PVInt64  i      -> T.pack $ "i64'" ++ show i
+
+        PVFloat32 f     -> T.pack $ "f32'" ++ show f
+        PVFloat64 f     -> T.pack $ "f64'" ++ show f

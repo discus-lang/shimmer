@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+
 module SMR.Core.Step
         ( Config        (..)
         , World         (..)
@@ -19,14 +19,8 @@ import qualified Data.Map       as Map
 -- | Evaluation config
 data Config w
         = Config
-        { -- | Reduce under lambda abstractions.
-          configUnderLambdas    :: Bool
-
-          -- | Reduce arguments when head is not an abstraction.
-        , configHeadArgs        :: Bool
-
-          -- | Primitive operator declarations.
-        , configPrims           :: Map Prim (PrimEval w)
+        { -- | Primitive operator declarations.
+          configPrims           :: Map PrimOp (PrimEval w)
 
           -- | Macro declarations.
         , configDeclsMac        :: Map Name Exp }
@@ -48,7 +42,7 @@ steps   :: Config w
 steps !config !world !xx
  = return $ Right xx
 
-{-
+{-}
  = do   erx <- step config world xx
         case erx of
          Left ResultDone         -> return $ Right xx
@@ -69,7 +63,7 @@ step    :: Config w
         -> World w -> Exp
         -> IO (Either Result Exp)
 
-step !config !world !xx
+step config world xx
  = return (Left ResultDone)
 
 {-}

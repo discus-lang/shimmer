@@ -15,12 +15,12 @@ primOpsList
 primOpListCons :: PrimEval w
 primOpListCons
  = PrimEval
-        (POp "list-cons")
+        (POPrim "list'cons")
         "add an element to the front of a list"
         fn'
  where
-        fn' _world [XVal v, XLIST vs]
-         = return $ Just $ XLIST (v : vs)
+        fn' _world [v, VList vs]
+         = return $ Just [VList (v : vs)]
         fn' _world _
          = return $ Nothing
 
@@ -29,12 +29,12 @@ primOpListCons
 primOpListUncons :: PrimEval w
 primOpListUncons
  = PrimEval
-        (POp "list-uncons")
+        (POPrim "list'uncons")
         "split an element from the front of a list"
         fn'
  where
-        fn' _world [XLIST (v : vs), x2]
-         = return $ Just $ XApv x2 [XVal v, XLIST vs]
+        fn' _world [VList (v : vs)]
+         = return $ Just [v, VList vs]
         fn' _world _
          = return $ Nothing
 
@@ -43,12 +43,12 @@ primOpListUncons
 primOpListAppend :: PrimEval w
 primOpListAppend
  = PrimEval
-        (POp "list-append")
+        (POPrim "list'append")
         "append two lists"
         fn'
  where
-        fn' _world [XLIST vs1, XLIST vs2]
-         = return $ Just (XLIST (vs1 ++ vs2))
+        fn' _world [VList vs1, VList vs2]
+         = return $ Just [VList (vs1 ++ vs2)]
         fn' _world _
          = return $ Nothing
 

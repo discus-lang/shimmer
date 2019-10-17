@@ -21,9 +21,9 @@ primOpBool1
         -> PrimEval w
 
 primOpBool1 name desc fn
- = PrimEval (POp name) desc fn'
- where  fn' _world [XBool b1]
-         = return $ Just $ XBool (fn b1)
+ = PrimEval (POPrim name) desc fn'
+ where  fn' _world [VBool b1]
+         = return $ Just [VBool (fn b1)]
         fn' _world _
          = return $ Nothing
 
@@ -35,10 +35,10 @@ primOpBool2
         -> PrimEval w
 
 primOpBool2 name desc fn
- = PrimEval (POp name) desc fn'
+ = PrimEval (POPrim name) desc fn'
  where
-        fn' _world [XBool b1, XBool b2]
-         = return $ Just $ XBool (fn b1 b2)
+        fn' _world [VBool b1, VBool b2]
+         = return $ Just [VBool (fn b1 b2)]
         fn' _world _
          = return $ Nothing
 
@@ -48,12 +48,12 @@ primOpBool2 name desc fn
 primOpIf :: PrimEval w
 primOpIf
  = PrimEval
-        (POp "if")
+        (POPrim "if")
         "boolean if-then-else operator"
         fn'
  where
-        fn' _world [XBool b1, x1, x2]
-         = return $ Just $ if b1 then XRun x1 else XRun x2
+        fn' _world [VBool b1, v1, v2]
+         = return $ Just $ if b1 then [v1] else [v2]
 
         fn' _world _
          = return $ Nothing
