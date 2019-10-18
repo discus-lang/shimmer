@@ -4,7 +4,8 @@ include make/build.mk
 .PHONY: bin/shimmer
 bin/shimmer :
 	@$(GHC) -XStrict -XBangPatterns -XPatternSynonyms -XOverloadedStrings \
-		-XScopedTypeVariables -XDeriveAnyClass \
+		-XScopedTypeVariables -XDeriveAnyClass -XParallelListComp \
+		-XPatternGuards \
 		-O2 -o bin/shimmer -isrc/shimmer src/shimmer/Main.hs \
 		-package haskeline
 

@@ -79,7 +79,7 @@ pDecl c
           _       <- pPunc ';'
           if length nsParam == 0
            then return (DeclMac name xBody)
-           else return (DeclMac name $ XAbs nsParam xBody)
+           else return (DeclMac name $ XAbs (replicate (length nsParam) True) nsParam xBody)
 
  , P.enterOn (pNameOfSpace SSet) ExContextDecl $ \name
     -> do _       <- pPunc '='
@@ -94,12 +94,23 @@ pDecl c
 pExp  :: Config -> Parser Exp
 pExp c
  = P.alts
- [ do   -- Abstraction.
+ [ do   -- Delay evaluation.
+        _       <- pPunc '~'
+        xBody   <- pExp c
+        return  $  XDel xBody
+
+ , do   -- Force evaluation.
+        _       <- pPunc '!'
+        xBody   <- pExp c
+        return  $  XNow xBody
+
+ , do   -- Abstraction.
         _       <- pPunc '{'
-        nsBind  <- P.some (pNameOfSpace SVar)
+        bnsBind <- P.some (pParam c)
         _       <- pPunc '}'
         xBody   <- pExp c
-        return  $ XAbs  nsBind xBody
+        let (bsBind, nsBind) = unzip bnsBind
+        return  $ XAbs bsBind nsBind xBody
 
  , do   -- Application possibly using '$'
         xHead   <- pExpApp c
@@ -110,6 +121,16 @@ pExp c
 
          , return xHead ]
  ]
+
+pParam :: Config -> Parser (Bool, Name)
+pParam c
+ = do   b       <- P.alts
+                [ do    pPunc '!'; return True
+                , do    pPunc '~'; return False
+                , do    return True ]
+
+        n       <- pNameOfSpace SVar
+        return (b, n)
 
 
 -- | Parser for an application.

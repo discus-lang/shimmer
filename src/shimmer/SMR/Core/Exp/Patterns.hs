@@ -14,6 +14,8 @@ pattern XVec xs         = XKey KVec xs
 pattern XPrm p     xArg = XKey (KPrm p) [xArg]
 pattern XApp xFun xArgs = XKey KApp [xFun, xArgs]
 pattern XApv xFun xsArg = XApp xFun (XVec xsArg)
+pattern XDel x          = XKey KDel [x]
+pattern XNow x          = XKey KNow [x]
 
 pattern XList xs        = XPrm POList xs
 pattern XLIST vs        = XVal (VList vs)

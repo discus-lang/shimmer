@@ -3,6 +3,7 @@ module SMR.Core.Eval where
 import SMR.Core.Exp
 import SMR.Core.Prim
 
+import Control.Monad
 import Control.Exception
 import Data.Typeable
 import Data.Map                 (Map)
@@ -31,47 +32,94 @@ data Error
 --------------------------------------------------------------------------------
 -- | Big Step Evaluation.
 eval    :: Config w -> World w
-        -> [Env] -> Exp
-        -> IO [Val]
+        -> [Env] -> Exp -> IO [Val]
 
-eval c w envs (XVal v)
- = return [v]
+eval c w envs xx
+ = do   ss      <- seek c w envs xx
+        mapM (reduce c w) ss
 
-eval c w envs (XMac n)
+
+--------------------------------------------------------------------------------
+data Solid
+        = SVal Val
+        | SExp [Env] Exp
+        deriving (Eq, Show)
+
+-- | Reduce a solid to a value.
+reduce  :: Config w -> World w -> Solid -> IO Val
+reduce c w (SExp envs x)
+ = do   vs      <- eval c w envs x
+        case vs of
+         [v]    -> return v
+         _      -> error "arity error in solid reduction"
+
+reduce c w (SVal (VThk envs x))
+ = do   vs      <- eval c w envs x
+        case vs of
+         [v]    -> return v
+         _      -> error "arity error in solid reduction"
+
+reduce c w (SVal v) = return v
+
+
+-- | Convert a solid to a value representation,
+--   packing any expressions that are not already values into thunks.
+convert :: Config w -> World w -> Solid -> IO Val
+convert c w (SVal v)
+ = return v
+
+convert c w (SExp envs x)
+ = return $ VThk envs x
+
+
+--------------------------------------------------------------------------------
+-- | Evaluate an expression far enough to see what the arity of the result is,
+--   but don't force evaluation of any the components of that result.
+seek    :: Config w -> World w
+        -> [Env] -> Exp -> IO [Solid]
+
+seek c w envs x@(XVal v)
+ = return [SVal v]
+
+seek c w envs (XMac n)
  = case Map.lookup n (configDeclsMac c) of
         Nothing -> error "unbound macro"
-        Just x  -> eval c w envs x
+        Just x  -> seek c w envs x
 
-eval c w envs (XVar n _)
+seek c w envs (XVar n _)
  = go envs
  where  go [] = throw $ ErrorVarUnbound n
         go (env : envs')
          = case Map.lookup n env of
-                Just v  -> return [v]
+                Just v  -> return [SVal v]
                 Nothing -> go envs'
 
-eval c w envs (XAbs nsParam xBody)
- = return [VClo envs nsParam xBody]
+seek c w envs x@(XAbs bs ns xBody)
+ = return [SVal $ VClo envs bs ns xBody]
 
-eval c w envs (XVec xs)
- = do   vss <- mapM (eval c w envs) xs
-        return $ concat vss
+seek c w envs (XVec xs)
+ = return $ map (SExp envs) xs
 
-eval c w envs (XApp xFun xArgs)
- = do   vFun  <- eval c w envs xFun
-        vsArg <- eval c w envs xArgs
+seek c w envs (XApp xFun xArgs)
+ = do   vFun    <- eval c w envs xFun
+        ssArg   <- seek c w envs xArgs
+
         case vFun of
-         [VClo envs nsParam xBody]
-          | length vsArg == length nsParam
-          -> let env'   = Map.fromList $ zip nsParam vsArg
-                 envs'  = env' : envs
-             in  eval c w envs' xBody
+         [VClo envs' bs ns xBody]
+          | length bs == length ns
+          , length bs == length ssArg
+          -> do let capture True  s = reduce  c w s
+                    capture False s = convert c w s
+                vsArg    <- zipWithM capture bs ssArg
+                let env'   = Map.fromList $ zip ns vsArg
+                let envs'' = env' : envs'
+                seek c w envs'' xBody
 
          [VClo{}] -> error "wrong arity in function application"
          [_]      -> error "cannot apply non function"
          _        -> error "function expression has wrong arity"
 
-eval c w envs xx@(XPrm (POPrim name) xArg)
+seek c w envs xx@(XPrm (POPrim name) xArg)
  = case Map.lookup (POPrim name) (configPrims c) of
         Nothing
          -> throw $ ErrorPrmUnknown name
@@ -81,7 +129,16 @@ eval c w envs xx@(XPrm (POPrim name) xArg)
                 mrs     <- primEvalFun peval w vsArg
                 case mrs of
                  Nothing -> error $ "stuck " ++ show (name, vsArg)
-                 Just vs -> return vs
+                 Just vs -> return $ map SVal vs
 
-eval _ _ _ xx
+seek c w envs xx@(XDel xBody)
+ = return [SVal (VThk envs xBody)]
+
+seek c w envs xx@(XNow xBody)
+ = do   vs <- eval c w envs xBody
+        return $ map SVal vs
+
+seek _ _ _ xx
  = error $ "no match for " ++ show xx
+
+

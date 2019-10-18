@@ -6,6 +6,7 @@ import SMR.Core.Exp.Base
 import Data.Monoid
 import Data.Text                                (Text)
 import Data.Text.Lazy.Builder                   (Builder)
+import qualified Data.Map                       as Map
 import qualified Data.Text.Lazy.Builder         as B
 import qualified Data.Text.Lazy                 as L
 import qualified Data.Text                      as T
@@ -21,10 +22,6 @@ class Build a where
 instance Build Text where
  build tx = B.fromText tx
 
-{-}
-instance Build Prim where
- build pp = buildPrim pp
--}
 instance Build Decl where
  build xx = buildDecl xx
 
@@ -69,18 +66,20 @@ buildDecl dd
 buildExp :: Ctx -> Exp -> Builder
 buildExp ctx xx
  = case xx of
-        XVal v    -> B.fromText $ pprVal v
+        XVal v    -> buildVal v
 
         XMac n    -> B.fromText $ "@" <> n
 
         XVar n 0  -> B.fromText n
         XVar n d  -> B.fromText n <> "^" <> B.fromString (show d)
 
-        XAbs vs x
+        XAbs bs vs x
+         | length bs == length vs
          -> let go []        = "} "
-                go (n : [])  = B.fromText n <> "} "
-                go (n : ns)  = B.fromText n <> " " <> go ns
-                ss           = "{" <> go vs <> buildExp CtxTop x
+                go ((True, n) : [])  = "!" <> B.fromText n <> "} "
+                go ((False, n) : ns) = "~" <> B.fromText n <> " " <> go ns
+                ss           = "{" <> go (zip bs vs) <> buildExp CtxTop x
+
             in  case ctx of
                  CtxArg -> parens ss
                  CtxFun -> parens ss
@@ -161,17 +160,41 @@ buildText tx
 -- | Yield a builder for a primitive.
 buildVal :: Val -> Builder
 buildVal vv
- = "#" <> (B.fromText $ pprVal vv)
-
-
--- Val ------------------------------------------------------------------------
--- | Pretty print a primitive value.
-pprVal :: Val -> Text
-pprVal vv
  = case vv of
-        VRef r          -> pprRef r
-        VPrim p         -> pprPrimVal p
-        VList vs        -> "[list|" <> T.intercalate "," (map pprVal vs) <> "]"
+        VRef r          -> "#" <> (B.fromText $ pprRef r)
+        VPrim p         -> "#" <> (B.fromText $ pprPrimVal p)
+
+--        VList vs
+--         -> "[list|" <> T.intercalate "," (map pprVal vs) <> "]"
+
+        VClo  env bsParam nsParam x
+         -> "[clo| "
+         <> buildEnv (concatMap Map.toList env)
+         <> " "
+         <> "{" <> B.fromText (T.intercalate " "
+                        [ if b then "!" <> n else "" <> n
+                        | b <- bsParam
+                        | n <- nsParam]) <> "} "
+         <> buildExp CtxTop x
+         <> "]"
+
+        VThk _env x
+         -> "[thk| ..."
+         <> buildExp CtxTop x
+         <> "]"
+
+
+buildEnv :: [(Name, Val)] -> Builder
+buildEnv nxs'
+ = "[env| " <> go nxs'
+ where  go []             = "]"
+        go ((n, v) : [])
+         = B.fromText n <> " = " <> buildVal v <> "]"
+
+        go ((n, v) : nxs')
+         =  B.fromText n <> " = " <> buildVal v
+         <> ", " <> buildEnv nxs'
+
 
 
 -- PrimOp ---------------------------------------------------------------------

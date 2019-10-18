@@ -19,7 +19,7 @@ data Exp
         = XVal  Val                     -- ^ Value.
         | XMac  Name                    -- ^ Macro name.
         | XVar  Name    Depth           -- ^ Variable name with bump.
-        | XAbs  [Name]  Exp             -- ^ Abstraction with parameter names and body.
+        | XAbs  [Bool]  [Name] Exp      -- ^ Abstraction with parameter demand, names and body.
         | XLet  [Name]  [Exp] Exp       -- ^ Non-recursive bindings.
         | XRec  [Name]  [Exp] Exp       -- ^ Recursive bindings.
         | XKey  Key     [Exp]           -- ^ Keyword invocation.
@@ -31,6 +31,8 @@ data Key
         = KVec                          -- ^ Vector formation.
         | KApp                          -- ^ Function application.
         | KPrm PrimOp                   -- ^ Primitive operator application.
+        | KDel                          -- ^ Delay evaluation by building a thunk.
+        | KNow                          -- ^ Force evaluation of a thunk.
         deriving (Eq, Show)
 
 
@@ -60,7 +62,8 @@ data Val
         = VRef          Ref
         | VPrim         PrimVal
         | VList         [Val]
-        | VClo          [Env] [Name] Exp
+        | VClo          [Env] [Bool] [Name] Exp
+        | VThk          [Env] Exp
         deriving (Eq, Show)
 
 

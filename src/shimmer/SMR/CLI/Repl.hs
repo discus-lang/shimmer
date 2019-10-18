@@ -56,7 +56,7 @@ type RExp       = Exp
 replStart :: RState -> IO ()
 replStart state
  = HL.runInputT HL.defaultSettings
- $ do   HL.outputStrLn "Shimmer v0.2. The Lambda Machine."
+ $ do   HL.outputStrLn "Shimmer v0.2. The Reflective Lambda Machine."
         HL.outputStrLn "Type :help for help."
         replReload state
 
@@ -249,8 +249,8 @@ replLoadExp state str eat
                         $ [ (Prim.primEvalName p, p) | p <- Prim.primOps ]
 
                 config  = Eval.Config
-                        { Eval.configDeclsMac     = decls
-                        , Eval.configPrims        = prims }
+                        { Eval.configDeclsMac   = decls
+                        , Eval.configPrims      = prims }
 
               in eat state config xx
 

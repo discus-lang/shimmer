@@ -3,7 +3,8 @@
  = @fac'acc'loop [#nat'1, x];
 
 @fac'acc'loop acc x
- = (#if [ #nat'eq [x, #nat'0]
-        , {} acc
-        , {} @fac'acc'loop [#nat'mul [x, acc], #nat'sub [x, #nat'1]]]) [];
+ = @if [ #nat'eq [x, #nat'0]
+       , acc
+       , @fac'acc'loop [#nat'mul [x, acc], #nat'sub [x, #nat'1]]];
 
+@if = {b ~x ~y} (#if [b, {} x, {} y]) [];
