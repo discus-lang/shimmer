@@ -1,7 +1,6 @@
 
 module SMR.Core.Eval where
 import SMR.Core.Exp
-import SMR.Core.Step
 import SMR.Core.Prim
 
 import Control.Exception
@@ -9,7 +8,19 @@ import Data.Typeable
 import Data.Map                 (Map)
 import qualified Data.Map       as Map
 
+--------------------------------------------------------------------------------
+-- | Evaluation config
+data Config w
+        = Config
+        { -- | Primitive operator declarations.
+          configPrims           :: Map PrimOp (PrimEval w)
 
+          -- | Macro declarations.
+        , configDeclsMac        :: Map Name Exp }
+
+
+--------------------------------------------------------------------------------
+-- | Evaluation errors.
 data Error
         = ErrorVarUnbound Name
         | ErrorPrmUnknown Name
@@ -17,6 +28,8 @@ data Error
         deriving (Typeable, Show, Exception)
 
 
+--------------------------------------------------------------------------------
+-- | Big Step Evaluation.
 eval    :: Config w -> World w
         -> [Env] -> Exp
         -> IO [Val]

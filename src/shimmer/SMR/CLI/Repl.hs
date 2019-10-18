@@ -4,7 +4,6 @@ import SMR.Core.Exp
 import qualified SMR.CLI.Help                   as Help
 import qualified SMR.CLI.Driver.Load            as Driver
 import qualified SMR.Core.Eval                  as Eval
-import qualified SMR.Core.Step                  as Step
 import qualified SMR.Core.World                 as World
 import qualified SMR.Core.Prim                  as Prim
 import qualified SMR.Source.Parser              as Source
@@ -28,7 +27,7 @@ import Data.Monoid
 data Mode w
         = ModeNone
         | ModeParse
-        | ModeEval (Step.Config w) Exp
+        | ModeEval (Eval.Config w) Exp
 
 
 data State w
@@ -47,7 +46,7 @@ data State w
 
 
 type RState     = State ()
-type RConfig    = Step.Config ()
+type RConfig    = Eval.Config ()
 type RWorld     = World.World  ()
 type RDecl      = Decl
 type RExp       = Exp
@@ -93,7 +92,6 @@ replLoop state
 
                 ":parse"   : xs   -> replParse   state (unwords xs)
                 ":eval"    : xs   -> replEval    state (unwords xs)
-                ":trace"   : xs   -> replTrace   state (unwords xs)
                 _                 -> replEval    state input
 
 
@@ -233,39 +231,6 @@ replEval_next state config xx
 
 
 -------------------------------------------------------------------------------
--- | Parse an expression and normalize it,
---   printing out each intermediate state.
-replTrace :: RState -> String -> HL.InputT IO ()
-replTrace state str
- = replLoadExp state str replTrace_next
-
--- | Advance the evaluator stepper.
-replTrace_next
-        :: RState -> RConfig -> RExp
-        -> HL.InputT IO ()
-
-replTrace_next state config !xx0
- = loop xx0
- where
-  loop !xx
-   = do erx <- liftIO $ Step.step config (stateWorld state) xx
-        case erx of
-         Left (Step.ResultError msg)
-          -> do  HL.outputStrLn
-                  $ Text.unpack
-                  $ Text.pack "error: " <> msg
-
-         Left Step.ResultDone
-          -> replLoop $ state { stateMode = ModeNone }
-
-         Right xx'
-          -> do  liftIO  $ TL.putStrLn
-                         $ BL.toLazyText
-                         $ Source.buildExp Source.CtxTop xx'
-
-                 loop xx'
-
--------------------------------------------------------------------------------
 replLoadExp
         :: RState -> String
         -> (RState -> RConfig -> RExp -> HL.InputT IO ())
@@ -283,9 +248,9 @@ replLoadExp state str eat
                 prims   = Map.fromList
                         $ [ (Prim.primEvalName p, p) | p <- Prim.primOps ]
 
-                config  = Step.Config
-                        { Step.configDeclsMac     = decls
-                        , Step.configPrims        = prims }
+                config  = Eval.Config
+                        { Eval.configDeclsMac     = decls
+                        , Eval.configPrims        = prims }
 
               in eat state config xx
 
