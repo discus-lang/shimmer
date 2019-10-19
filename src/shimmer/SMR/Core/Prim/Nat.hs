@@ -41,19 +41,19 @@ primOpsNat
 
    , PP { name  = "nat'lt"
         , desc  = "natura less than"
-        , eval  = opNat2Bool (/=) }
+        , eval  = opNat2Bool (<) }
 
    , PP { name  = "nat'le"
         , desc  = "natural less than equal"
-        , eval  = opNat2Bool (/=) }
+        , eval  = opNat2Bool (<=) }
 
    , PP { name  = "nat'gt"
         , desc  = "natural greater than"
-        , eval  = opNat2Bool (/=) }
+        , eval  = opNat2Bool (>) }
 
    , PP { name  = "nat'ge"
         , desc  = "natural greater than equal"
-        , eval  = opNat2Bool (/=) }
+        , eval  = opNat2Bool (>=) }
    ]
 
 
