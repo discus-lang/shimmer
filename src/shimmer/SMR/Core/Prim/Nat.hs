@@ -40,7 +40,7 @@ primOpsNat
         , eval  = opNat2Bool (/=) }
 
    , PP { name  = "nat'lt"
-        , desc  = "natura less than"
+        , desc  = "natural less than"
         , eval  = opNat2Bool (<) }
 
    , PP { name  = "nat'le"

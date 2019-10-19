@@ -4,11 +4,14 @@ module SMR.Source.Lexer
         , Located (..)
         , Location(..))
 where
+import SMR.Source.Prim
 import SMR.Source.Token
 import SMR.Data.Located
 import Data.Text                (Text)
 import qualified Data.Text      as Text
 import qualified Data.Char      as Char
+import Data.IORef
+import SMR.Core.Exp
 
 
 -- Lexer ----------------------------------------------------------------------
@@ -212,4 +215,3 @@ isCharPunc c
  | c == '~'     = True
  | c == '?'     = True
  | otherwise    = False
-
