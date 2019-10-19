@@ -20,3 +20,4 @@ cabal.project.local
 .HTF/
 make/config-override.mk
 bin/*
+.vscode
