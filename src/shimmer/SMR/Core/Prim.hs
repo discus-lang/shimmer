@@ -25,9 +25,7 @@ import qualified Data.Set       as Set
 -- | Set containing textual names of all the primitive operators.
 primNames :: Set Text
 primNames
- = Set.fromList
-        [ n | POPrim n <- map primEvalName $ primOps ]
-
+ = Set.fromList $ map name primOps
 
 -- | Evaluators for all the primitive operators.
 primOps :: [PrimEval w]

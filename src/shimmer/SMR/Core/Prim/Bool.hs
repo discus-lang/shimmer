@@ -1,5 +1,5 @@
 
-module SMR.Core.Prim.Bool where
+module SMR.Core.Prim.Bool (primOpsBool) where
 import SMR.Core.Prim.Base
 import SMR.Core.Exp
 import Data.Text        (Text)
@@ -8,53 +8,31 @@ import Data.Text        (Text)
 -- | Primitive evaluators for boolean operators.
 primOpsBool :: [PrimEval w]
 primOpsBool
- = [ primOpBool1 "not" "boolean negation" (\b -> not b)
-   , primOpBool2 "and" "boolean and"      (&&)
-   , primOpBool2 "or"  "boolean or"       (||)
-   , primOpIf ]
+ = [ PP { name  = "not"
+        , desc  = "boolean negation"
+        , eval  = opBool1 not }
+
+   , PP { name  = "and"
+        , desc  = "boolean and"
+        , eval  = opBool2 (&&) }
+
+   , PP { name  = "or"
+        , desc  = "boolean or"
+        , eval  = opBool2 (||) }
+
+   , PP { name  = "if"
+        , desc  = "selection based on a boolean"
+        , eval  = \case [VBool b1, v2, v3]
+                          -> Just $ if b1 then [v2] else [v3]
+                        _ -> Nothing }
+   ]
 
 
--- | Construct an evaluator for 1-arity bool operator.
-primOpBool1
-        :: Name -> Text
-        -> (Bool -> Bool)
-        -> PrimEval w
+opBool1 :: (Bool -> Bool) -> [Val] -> Maybe [Val]
+opBool1 f [VBool a]             = Just [VBool $ f a]
+opBool1 f _                     = Nothing
 
-primOpBool1 name desc fn
- = PrimEval (POPrim name) desc fn'
- where  fn' _world [VBool b1]
-         = return $ Just [VBool (fn b1)]
-        fn' _world _
-         = return $ Nothing
-
-
--- | Construct an evaluator for 2-arity bool operator.
-primOpBool2
-        :: Name -> Text
-        -> (Bool -> Bool -> Bool)
-        -> PrimEval w
-
-primOpBool2 name desc fn
- = PrimEval (POPrim name) desc fn'
- where
-        fn' _world [VBool b1, VBool b2]
-         = return $ Just [VBool (fn b1 b2)]
-        fn' _world _
-         = return $ Nothing
-
-
--- | Primitive evaluator for the #if operator.
---   Only the scrutinee is demanded, while the branches are not.
-primOpIf :: PrimEval w
-primOpIf
- = PrimEval
-        (POPrim "if")
-        "boolean if-then-else operator"
-        fn'
- where
-        fn' _world [VBool b1, v1, v2]
-         = return $ Just $ if b1 then [v1] else [v2]
-
-        fn' _world _
-         = return $ Nothing
+opBool2 :: (Bool -> Bool -> Bool) -> [Val] -> Maybe [Val]
+opBool2 f [VBool a, VBool b]    = Just [VBool $ f a b]
+opBool2 f _                     = Nothing
 

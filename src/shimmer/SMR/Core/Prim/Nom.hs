@@ -5,44 +5,26 @@ import SMR.Core.Exp.Base
 import SMR.Core.World
 import Data.IORef
 
-
--- | Primitive evalutor for nominal variable operators.
+-- | Primitive operators for nominal variables.
 primOpsNom :: [PrimEval w]
 primOpsNom
- = [ primOpNomEq
-   , primOpNomFresh ]
+ = [ PP { name  = "nom'eq"
+        , desc  = "check equality of two nominal variables"
+        , eval  = \case [VNom n1, VNom n2]
+                          -> Just $ if n1 == n2 then [VTrue] else [VFalse]
+                        _ -> Nothing }
 
+   , PE { name  = "nom'fresh"
+        , desc  = "allocate a fresh nominal variable"
+        , exec  =  \world
+                -> \case [VUnit]
+                          -> do ix  <- readIORef (worldNomGen world)
+                                writeIORef (worldNomGen world) (ix + 1)
+                                return $ Just [VNom ix]
 
--- | Check for equality of two nominal variables.
-primOpNomEq :: PrimEval w
-primOpNomEq
- = PrimEval
-        (POPrim "nom'eq")
-        ("check equality of two nominal variables")
-        fn'
- where
-        fn' _world [VNom n1, VNom n2]
-         = return $ Just $ if n1 == n2 then [VTrue] else [VFalse]
-        fn' _world _
-         = return $ Nothing
-
-
--- | Allocate a fresh nominal variable.
-primOpNomFresh :: PrimEval w
-primOpNomFresh
- = PrimEval
-        (POPrim "nom'fresh")
-        "allocate a fresh nominal variable"
-        fn'
- where
-        fn' world [VUnit]
-         = do   ix  <- readIORef (worldNomGen world)
-                writeIORef (worldNomGen world) (ix + 1)
-                return $ Just [VNom ix]
-
-        fn' _world _
-         = do   return $ Nothing
-
+                         _ -> return Nothing
+        }
+   ]
 
 -- | Create a closing substitution for a nominal variable.
 {-

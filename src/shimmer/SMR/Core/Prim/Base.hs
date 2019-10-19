@@ -7,17 +7,16 @@ where
 import SMR.Core.Exp
 import SMR.Core.World
 
-
 -- | Primitive evaluator.
 data PrimEval w
-        = PrimEval
-        { -- ^ Operator name.
-          primEvalName  :: PrimOp
-
-          -- ^ Operator description.
-        , primEvalDesc  :: Text
-
-          -- ^ Operator evaluation function.
-        , primEvalFun  :: World w -> [Val] -> IO (Maybe [Val])
+ -- | Pure operator.
+ = PP   { name  :: Text                 -- ^ Operator name.
+        , desc  :: Text                 -- ^ Operator description.
+        , eval  :: [Val] -> Maybe [Val] -- ^ Pure evaluation.
         }
+
+ | PE   { name  :: Text                 -- ^ Operator name
+        , desc  :: Text                 -- ^ Operator description.
+        , exec  :: World w -> [Val] -> IO (Maybe [Val])
+ }
 

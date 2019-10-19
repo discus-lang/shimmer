@@ -139,9 +139,9 @@ replPrims state
         HL.outputStr
          $ unlines
          $ [   leftPad 16 ("  #" ++ (Text.unpack $ name))
-            ++ Text.unpack (Prim.primEvalDesc p)
+            ++ Text.unpack (Prim.desc p)
 
-           | p@(Prim.PrimEval { Prim.primEvalName = Prim.POPrim name })
+           | p@(Prim.PE name _ _)
                 <- Prim.primOps ]
 
         replLoop state
@@ -246,7 +246,7 @@ replLoadExp state str eat
                         $ [ (n, x) | DeclMac n x <- stateDecls state ]
 
                 prims   = Map.fromList
-                        $ [ (Prim.primEvalName p, p) | p <- Prim.primOps ]
+                        $ [ (Prim.name p, p) | p <- Prim.primOps ]
 
                 config  = Eval.Config
                         { Eval.configDeclsMac   = decls

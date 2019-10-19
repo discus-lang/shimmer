@@ -1,7 +1,7 @@
 
 module SMR.Core.Eval where
 import SMR.Core.Exp
-import SMR.Core.Prim
+import qualified SMR.Core.Prim  as Prim
 
 import Control.Monad
 import Control.Exception
@@ -14,10 +14,10 @@ import qualified Data.Map       as Map
 data Config w
         = Config
         { -- | Primitive operator declarations.
-          configPrims           :: Map PrimOp (PrimEval w)
+          configPrims    :: Map Name (Prim.PrimEval w)
 
           -- | Macro declarations.
-        , configDeclsMac        :: Map Name Exp }
+        , configDeclsMac :: Map Name Exp }
 
 
 --------------------------------------------------------------------------------
@@ -31,7 +31,7 @@ data Error
 
 --------------------------------------------------------------------------------
 -- | Big Step Evaluation.
-eval    :: Config w -> World w
+eval    :: Config w -> Prim.World w
         -> [Env] -> Exp -> IO [Val]
 
 eval c w envs xx
@@ -46,7 +46,7 @@ data Solid
         deriving (Eq, Show)
 
 -- | Reduce a solid to a value.
-reduce  :: Config w -> World w -> Solid -> IO Val
+reduce  :: Config w -> Prim.World w -> Solid -> IO Val
 reduce c w (SExp envs x)
  = do   vs      <- eval c w envs x
         case vs of
@@ -64,7 +64,7 @@ reduce c w (SVal v) = return v
 
 -- | Convert a solid to a value representation,
 --   packing any expressions that are not already values into thunks.
-convert :: Config w -> World w -> Solid -> IO Val
+convert :: Config w -> Prim.World w -> Solid -> IO Val
 convert c w (SVal v)
  = return v
 
@@ -75,7 +75,7 @@ convert c w (SExp envs x)
 --------------------------------------------------------------------------------
 -- | Evaluate an expression far enough to see what the arity of the result is,
 --   but don't force evaluation of any the components of that result.
-seek    :: Config w -> World w
+seek    :: Config w -> Prim.World w
         -> [Env] -> Exp -> IO [Solid]
 
 seek c w envs x@(XVal v)
@@ -120,13 +120,13 @@ seek c w envs (XApp xFun xArgs)
          _        -> error "function expression has wrong arity"
 
 seek c w envs xx@(XPrm (POPrim name) xArg)
- = case Map.lookup (POPrim name) (configPrims c) of
+ = case Map.lookup name (configPrims c) of
         Nothing
          -> throw $ ErrorPrmUnknown name
 
-        Just peval
+        Just (Prim.PP _name _desc peval)
          -> do  vsArg   <- eval c w envs xArg
-                mrs     <- primEvalFun peval w vsArg
+                let mrs =  peval vsArg
                 case mrs of
                  Nothing -> error $ "stuck " ++ show (name, vsArg)
                  Just vs -> return $ map SVal vs

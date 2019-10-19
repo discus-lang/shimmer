@@ -5,7 +5,7 @@ include make/build.mk
 bin/shimmer :
 	@$(GHC) -XStrict -XBangPatterns -XPatternSynonyms -XOverloadedStrings \
 		-XScopedTypeVariables -XDeriveAnyClass -XParallelListComp \
-		-XPatternGuards \
+		-XPatternGuards -XLambdaCase \
 		-O2 -o bin/shimmer -isrc/shimmer src/shimmer/Main.hs \
 		-package haskeline
 
